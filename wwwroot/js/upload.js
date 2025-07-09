@@ -376,8 +376,49 @@
                     <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
                         Select which columns to include in processing
                     </p>
-                    <div class="headers-grid">
-                        ${fileData.headers.map(header => createHeaderItem(header, fileData.id)).join('')}
+                    <div class="headers-search-container">
+                        <div class="search-input-wrapper">
+                            <i class="material-icons search-icon">search</i>
+                            <input type="text" 
+                                   class="headers-search-input" 
+                                   placeholder="Search columns by name, type, or sample data..." 
+                                   id="headers-search-${fileData.id}"
+                                   oninput="UploadHandler.searchHeaders('${fileData.id}', this.value)">
+                            <button type="button" 
+                                    class="search-clear-btn" 
+                                    onclick="UploadHandler.clearHeaderSearch('${fileData.id}')"
+                                    style="display: none;">
+                                <i class="material-icons">clear</i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="headers-table-container">
+                        <table class="headers-table" id="headers-table-${fileData.id}">
+                            <thead>
+                                <tr>
+                                    <th class="select-col">
+                                        <label class="header-select-all">
+                                            <input type="checkbox" checked onchange="UploadHandler.toggleAllHeaders('${fileData.id}', this.checked)">
+                                            <span class="sr-only">Select all</span>
+                                        </label>
+                                    </th>
+                                    <th class="column-name">Column Name</th>
+                                    <th class="data-type">Type</th>
+                                    <th class="sample-data">Sample Data</th>
+                                    <th class="column-ref">Column</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${fileData.headers.map(header => createHeaderTableRow(header, fileData.id)).join('')}
+                            </tbody>
+                        </table>
+                        <div class="no-search-results" id="no-results-${fileData.id}" style="display: none;">
+                            <div class="no-results-content">
+                                <i class="material-icons">search_off</i>
+                                <p>No columns match your search criteria</p>
+                                <small>Try adjusting your search terms or <a href="#" onclick="UploadHandler.clearHeaderSearch('${fileData.id}')">clear search</a></small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -406,27 +447,41 @@
         }
     };
     
-    const createHeaderItem = function(header, fileId) {
+    const createHeaderTableRow = function(header, fileId) {
         try {
             const dataTypeClass = getDataTypeClass(header.type);
             
             return `
-                <div class="header-item ${header.selected ? 'selected' : ''}" 
-                     onclick="UploadHandler.toggleHeader('${fileId}', '${header.id}')">
-                    <input type="checkbox" class="header-checkbox" ${header.selected ? 'checked' : ''} 
-                           onchange="event.stopPropagation()">
-                    <div class="header-content">
-                        <div class="header-name">
+                <tr class="header-row ${header.selected ? 'selected' : ''}" data-header-id="${header.id}">
+                    <td class="select-col">
+                        <label class="header-checkbox-label">
+                            <input type="checkbox" class="header-checkbox" ${header.selected ? 'checked' : ''} 
+                                   onchange="UploadHandler.toggleHeader('${fileId}', '${header.id}')">
+                            <span class="sr-only">Select ${header.name}</span>
+                        </label>
+                    </td>
+                    <td class="column-name">
+                        <div class="column-name-content">
                             <strong>${header.name}</strong>
-                            <span class="badge ${dataTypeClass} ms-1">${header.type}</span>
+                            ${header.isRequired ? '<span class="required-indicator" title="Required field">*</span>' : ''}
                         </div>
-                        ${header.sampleData ? `<small class="text-muted d-block">Sample: ${header.sampleData}</small>` : ''}
-                    </div>
-                </div>
+                    </td>
+                    <td class="data-type">
+                        <span class="type-badge ${dataTypeClass}">${header.type}</span>
+                    </td>
+                    <td class="sample-data">
+                        <div class="sample-content" title="${header.sampleData || 'No sample data'}">
+                            ${header.sampleData ? header.sampleData : '<em class="no-data">No sample data</em>'}
+                        </div>
+                    </td>
+                    <td class="column-ref">
+                        <code class="column-letter">${header.column}</code>
+                    </td>
+                </tr>
             `;
         } catch (error) {
-            console.error('Error creating header item:', error);
-            return '';
+            console.error('Error creating header table row:', error);
+            return '<tr><td colspan="5" class="error-cell">Error loading header</td></tr>';
         }
     };
     
@@ -750,6 +805,147 @@
                 }
             } catch (error) {
                 console.error('Error toggling header:', error);
+            }
+        },
+        
+        toggleAllHeaders: function(fileId, selectAll) {
+            try {
+                const file = uploadedFiles.find(f => f.id == fileId);
+                if (file) {
+                    file.headers.forEach(header => {
+                        header.selected = selectAll;
+                    });
+                    renderFileList();
+                }
+            } catch (error) {
+                console.error('Error toggling all headers:', error);
+            }
+        },
+        
+        searchHeaders: function(fileId, searchTerm) {
+            try {
+                const table = document.getElementById(`headers-table-${fileId}`);
+                const noResultsDiv = document.getElementById(`no-results-${fileId}`);
+                const searchInput = document.getElementById(`headers-search-${fileId}`);
+                const clearBtn = searchInput?.parentElement?.querySelector('.search-clear-btn');
+                
+                if (!table) return;
+                
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr.header-row');
+                
+                // Show/hide clear button
+                if (clearBtn) {
+                    clearBtn.style.display = searchTerm.trim() ? 'flex' : 'none';
+                }
+                
+                // If no search term, show all rows and clear highlights
+                if (!searchTerm.trim()) {
+                    rows.forEach(row => {
+                        row.style.display = '';
+                        this.clearHighlights(row);
+                    });
+                    noResultsDiv.style.display = 'none';
+                    table.style.display = '';
+                    return;
+                }
+                
+                const searchLower = searchTerm.toLowerCase().trim();
+                let visibleCount = 0;
+                
+                rows.forEach(row => {
+                    // Get text content from searchable columns
+                    const columnName = row.querySelector('.column-name')?.textContent?.toLowerCase() || '';
+                    const dataType = row.querySelector('.data-type')?.textContent?.toLowerCase() || '';
+                    const sampleData = row.querySelector('.sample-data')?.textContent?.toLowerCase() || '';
+                    const columnRef = row.querySelector('.column-ref')?.textContent?.toLowerCase() || '';
+                    
+                    // Check if search term matches any of the searchable fields
+                    const matches = columnName.includes(searchLower) || 
+                                   dataType.includes(searchLower) || 
+                                   sampleData.includes(searchLower) ||
+                                   columnRef.includes(searchLower);
+                    
+                    if (matches) {
+                        row.style.display = '';
+                        visibleCount++;
+                        
+                        // Highlight matching text
+                        this.highlightSearchTerm(row, searchTerm);
+                    } else {
+                        row.style.display = 'none';
+                        // Clear highlights for hidden rows
+                        this.clearHighlights(row);
+                    }
+                });
+                
+                // Show/hide no results message
+                if (visibleCount === 0) {
+                    table.style.display = 'none';
+                    noResultsDiv.style.display = 'block';
+                } else {
+                    table.style.display = '';
+                    noResultsDiv.style.display = 'none';
+                }
+                
+            } catch (error) {
+                console.error('Error searching headers:', error);
+            }
+        },
+        
+        clearHeaderSearch: function(fileId) {
+            try {
+                const searchInput = document.getElementById(`headers-search-${fileId}`);
+                if (searchInput) {
+                    searchInput.value = '';
+                    this.searchHeaders(fileId, '');
+                    searchInput.focus();
+                }
+            } catch (error) {
+                console.error('Error clearing header search:', error);
+            }
+        },
+        
+        highlightSearchTerm: function(row, searchTerm) {
+            try {
+                if (!searchTerm.trim()) return;
+                
+                const searchables = row.querySelectorAll('.column-name, .data-type, .sample-data, .column-ref');
+                
+                searchables.forEach(element => {
+                    const originalText = element.getAttribute('data-original-text') || element.textContent;
+                    if (!element.getAttribute('data-original-text')) {
+                        element.setAttribute('data-original-text', originalText);
+                    }
+                    
+                    // Simple highlighting - replace with <mark> tags
+                    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                    const highlightedText = originalText.replace(regex, '<mark>$1</mark>');
+                    
+                    if (highlightedText !== originalText) {
+                        element.innerHTML = highlightedText;
+                    } else {
+                        element.textContent = originalText;
+                    }
+                });
+            } catch (error) {
+                console.error('Error highlighting search term:', error);
+            }
+        },
+        
+        clearHighlights: function(row) {
+            try {
+                const searchables = row.querySelectorAll('.column-name, .data-type, .sample-data, .column-ref');
+                
+                searchables.forEach(element => {
+                    const originalText = element.getAttribute('data-original-text');
+                    if (originalText) {
+                        element.textContent = originalText;
+                        element.removeAttribute('data-original-text');
+                    }
+                });
+            } catch (error) {
+                console.error('Error clearing highlights:', error);
             }
         },
         
