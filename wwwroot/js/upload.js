@@ -107,11 +107,16 @@
     
     const processFiles = function(files) {
         try {
+            const formData = new FormData();
             files.forEach(file => {
                 if (validateFile(file)) {
-                    analyzeFile(file);
+                    formData.append('files', file);
                 }
             });
+
+            if (formData.has('files')) {
+                uploadFiles(formData);
+            }
         } catch (error) {
             console.error('Error processing files:', error);
         }
@@ -145,81 +150,124 @@
         }
     };
     
-    const analyzeFile = function(file) {
+    const uploadFiles = function(formData) {
         try {
-            // Create mock file analysis (in real app, this would use a library like SheetJS)
-            const mockWorksheets = generateMockWorksheets(file.name);
-            const mockHeaders = generateMockHeaders();
+            // Show loading spinner
+            showLoadingSpinner();
             
-            const fileData = {
-                id: Date.now() + Math.random(),
-                file: file,
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                lastModified: new Date(file.lastModified),
-                worksheets: mockWorksheets,
-                headers: mockHeaders,
-                status: 'ready'
-            };
-            
-            uploadedFiles.push(fileData);
-            renderFileList();
-            showProcessSection();
+            // Show upload progress
+            if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                window.StylingTemplate.showDemoAlert('info', 'Uploading and analyzing files...');
+            }
+
+            fetch('/Home/UploadFiles', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoadingSpinner();
+                
+                if (data.success) {
+                    // Add uploaded files to our collection
+                    data.files.forEach(fileResult => {
+                        // Convert server response to client format
+                        const fileData = {
+                            id: fileResult.fileId,
+                            name: fileResult.fileName,
+                            size: fileResult.fileSize,
+                            type: fileResult.fileType,
+                            lastModified: new Date(fileResult.lastModified),
+                            worksheets: (fileResult.worksheets || []).map(ws => ({
+                                id: ws.id,
+                                name: ws.name || 'Unknown Sheet',
+                                rowCount: ws.rowCount || 0,
+                                columnCount: ws.columnCount || 0,
+                                hasHeaders: ws.hasHeaders !== undefined ? ws.hasHeaders : true,
+                                selected: ws.selected || false,
+                                detectedHeaders: ws.detectedHeaders || [],
+                                firstDataRowPreview: ws.firstDataRowPreview || ''
+                            })),
+                            headers: (fileResult.headers || []).map(header => ({
+                                id: header.id,
+                                name: header.detectedName || header.name || 'Unknown',
+                                standardName: header.standardName || header.detectedName || header.name || 'Unknown',
+                                type: header.dataType || header.type || 'Text',
+                                selected: header.selected !== undefined ? header.selected : true,
+                                isRequired: header.isRequired || false,
+                                matchConfidence: header.matchConfidence || 1.0,
+                                column: header.column || '',
+                                sampleData: header.sampleData || ''
+                            })),
+                            status: fileResult.status,
+                            validationErrors: fileResult.validationErrors || [],
+                            validationWarnings: fileResult.validationWarnings || [],
+                            qualityScore: fileResult.qualityScore || 0
+                        };
+                        
+                        uploadedFiles.push(fileData);
+                    });
+
+                    renderFileList();
+                    showProcessSection();
+
+                    if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                        window.StylingTemplate.showDemoAlert('success', `Successfully processed ${data.files.length} file(s)`);
+                    }
+                } else {
+                    console.error('Upload failed:', data.message);
+                    if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                        window.StylingTemplate.showDemoAlert('danger', data.message || 'Error uploading files');
+                    }
+                }
+            })
+            .catch(error => {
+                hideLoadingSpinner();
+                console.error('Error uploading files:', error);
+                if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                    window.StylingTemplate.showDemoAlert('danger', 'Error uploading files. Please try again.');
+                }
+            });
         } catch (error) {
-            console.error('Error analyzing file:', error);
+            console.error('Error in uploadFiles:', error);
         }
     };
     
-    const generateMockWorksheets = function(filename) {
+    const loadWorksheetHeaders = function(fileId, worksheetName) {
         try {
-            const worksheetNames = ['Equipment_Data', 'Maintenance_Schedule', 'Task_List', 'Summary'];
-            const selectedSheets = worksheetNames.slice(0, Math.floor(Math.random() * 3) + 1);
-            
-            return selectedSheets.map((name, index) => ({
-                id: `ws_${index}`,
-                name: name,
-                rows: Math.floor(Math.random() * 1000) + 100,
-                columns: Math.floor(Math.random() * 20) + 10,
-                selected: index === 0 // First sheet selected by default
-            }));
+            fetch(`/Home/GetWorksheetHeaders?fileId=${encodeURIComponent(fileId)}&worksheetName=${encodeURIComponent(worksheetName)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the file's headers
+                    const file = uploadedFiles.find(f => f.id === fileId);
+                    if (file) {
+                        file.headers = data.headers.map(header => ({
+                            id: header.id,
+                            name: header.detectedName || header.name || 'Unknown',
+                            standardName: header.standardName || header.detectedName || header.name || 'Unknown',
+                            type: header.dataType || header.type || 'Text',
+                            selected: header.selected !== undefined ? header.selected : true,
+                            isRequired: header.isRequired || false,
+                            matchConfidence: header.matchConfidence || 1.0,
+                            column: header.column || '',
+                            sampleData: header.sampleData || ''
+                        }));
+                        
+                        renderFileList();
+                    }
+                } else {
+                    console.error('Failed to load headers:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading worksheet headers:', error);
+            });
         } catch (error) {
-            console.error('Error generating mock worksheets:', error);
-            return [];
-        }
-    };
-    
-    const generateMockHeaders = function() {
-        try {
-            const standardHeaders = [
-                'Equipment ID', 'CMMS System', 'Equipment Technical Number',
-                'Task ID', 'Task Type', 'Task Description', 'Task Details',
-                'Last Date', 'Override Interval', 'Desired Interval',
-                'Reoccurring', 'Next Date', 'Next Date Basis',
-                'Task Assigned To', 'Reason', 'Related Entity ID'
-            ];
-            
-            return standardHeaders.map((header, index) => ({
-                id: `header_${index}`,
-                name: header,
-                type: getHeaderType(header),
-                selected: ['Equipment ID', 'Task ID', 'Task Type'].includes(header)
-            }));
-        } catch (error) {
-            console.error('Error generating mock headers:', error);
-            return [];
-        }
-    };
-    
-    const getHeaderType = function(header) {
-        try {
-            if (header.includes('Date')) return 'Date';
-            if (header.includes('ID') || header.includes('Interval')) return 'Numeric';
-            if (header.includes('Reoccurring')) return 'Boolean';
-            return 'Text';
-        } catch (error) {
-            console.error('Error getting header type:', error);
-            return 'Text';
+            console.error('Error in loadWorksheetHeaders:', error);
         }
     };
     
@@ -277,11 +325,35 @@
                         <div class="detail-label">Last Modified</div>
                         <div class="detail-value">${fileData.lastModified.toLocaleDateString()}</div>
                     </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Worksheets</div>
-                        <div class="detail-value">${fileData.worksheets.length} sheet(s)</div>
+                                            <div class="detail-item">
+                            <div class="detail-label">Worksheets</div>
+                            <div class="detail-value">${fileData.worksheets.length} sheet(s)</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Quality Score</div>
+                            <div class="detail-value">
+                                <span class="quality-score ${getQualityScoreClass(fileData.qualityScore)}">${fileData.qualityScore || 0}%</span>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                    
+                    ${fileData.validationErrors && fileData.validationErrors.length > 0 ? `
+                    <div class="alert alert-danger mt-2">
+                        <strong>Validation Errors:</strong>
+                        <ul class="mb-0 mt-1">
+                            ${fileData.validationErrors.map(error => `<li>${error}</li>`).join('')}
+                        </ul>
+                    </div>
+                    ` : ''}
+                    
+                    ${fileData.validationWarnings && fileData.validationWarnings.length > 0 ? `
+                    <div class="alert alert-warning mt-2">
+                        <strong>Warnings:</strong>
+                        <ul class="mb-0 mt-1">
+                            ${fileData.validationWarnings.map(warning => `<li>${warning}</li>`).join('')}
+                        </ul>
+                    </div>
+                    ` : ''}
                 
                 <div class="worksheets-section">
                     <h5 style="color: var(--federal-blue); margin-bottom: 0.5rem;">
@@ -324,7 +396,7 @@
                      onclick="UploadHandler.toggleWorksheet('${fileId}', '${worksheet.id}')">
                     <div class="worksheet-name">${worksheet.name}</div>
                     <div class="worksheet-stats">
-                        ${worksheet.rows.toLocaleString()} rows • ${worksheet.columns} columns
+                        ${(worksheet.rowCount || 0).toLocaleString()} rows • ${worksheet.columnCount || 0} columns
                     </div>
                 </div>
             `;
@@ -336,17 +408,35 @@
     
     const createHeaderItem = function(header, fileId) {
         try {
+            const dataTypeClass = getDataTypeClass(header.type);
+            
             return `
                 <div class="header-item ${header.selected ? 'selected' : ''}" 
                      onclick="UploadHandler.toggleHeader('${fileId}', '${header.id}')">
                     <input type="checkbox" class="header-checkbox" ${header.selected ? 'checked' : ''} 
                            onchange="event.stopPropagation()">
-                    <div class="header-name">${header.name}</div>
+                    <div class="header-content">
+                        <div class="header-name">
+                            <strong>${header.name}</strong>
+                            <span class="badge ${dataTypeClass} ms-1">${header.type}</span>
+                        </div>
+                        ${header.sampleData ? `<small class="text-muted d-block">Sample: ${header.sampleData}</small>` : ''}
+                    </div>
                 </div>
             `;
         } catch (error) {
             console.error('Error creating header item:', error);
             return '';
+        }
+    };
+    
+    const getDataTypeClass = function(dataType) {
+        switch (dataType) {
+            case 'Date': return 'badge-info';
+            case 'Numeric': return 'badge-success';
+            case 'Boolean': return 'badge-warning';
+            case 'Text':
+            default: return 'badge-secondary';
         }
     };
     
@@ -375,6 +465,18 @@
         } catch (error) {
             console.error('Error getting file type display:', error);
             return 'Unknown';
+        }
+    };
+    
+    const getQualityScoreClass = function(score) {
+        try {
+            if (score >= 90) return 'quality-excellent';
+            if (score >= 75) return 'quality-good';
+            if (score >= 50) return 'quality-fair';
+            return 'quality-poor';
+        } catch (error) {
+            console.error('Error getting quality score class:', error);
+            return 'quality-poor';
         }
     };
     
@@ -433,13 +535,97 @@
     
     const previewData = function() {
         try {
-            if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
-                window.StylingTemplate.showDemoAlert('info', 'Data preview functionality coming soon!');
-            } else {
-                alert('Data preview functionality coming soon!');
+            // Find the first file with a selected worksheet
+            const fileWithWorksheet = uploadedFiles.find(file => 
+                file.worksheets.some(ws => ws.selected)
+            );
+            
+            if (!fileWithWorksheet) {
+                if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                    window.StylingTemplate.showDemoAlert('warning', 'Please select a worksheet to preview data.');
+                }
+                return;
             }
+            
+            const selectedWorksheet = fileWithWorksheet.worksheets.find(ws => ws.selected);
+            
+            fetch(`/Home/GetDataPreview?fileId=${encodeURIComponent(fileWithWorksheet.id)}&worksheetName=${encodeURIComponent(selectedWorksheet.name)}&maxRows=10`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showDataPreviewModal(data.data);
+                } else {
+                    if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                        window.StylingTemplate.showDemoAlert('danger', data.message || 'Error loading data preview.');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error getting data preview:', error);
+                if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                    window.StylingTemplate.showDemoAlert('danger', 'Error loading data preview.');
+                }
+            });
         } catch (error) {
             console.error('Error previewing data:', error);
+        }
+    };
+    
+    const showDataPreviewModal = function(previewData) {
+        try {
+            // Create a simple modal to show the data preview
+            const modalHtml = `
+                <div class="modal fade" id="dataPreviewModal" tabindex="-1">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Data Preview - ${previewData.worksheetId}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-sm">
+                                        <thead>
+                                            <tr>
+                                                ${previewData.headers.map(header => `<th>${header}</th>`).join('')}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${previewData.rows.map(row => 
+                                                `<tr>${row.map(cell => `<td>${cell || ''}</td>`).join('')}</tr>`
+                                            ).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <small class="text-muted">
+                                    Showing ${previewData.rows.length} of ${previewData.totalRows} rows
+                                    ${previewData.hasMoreData ? ' (partial preview)' : ''}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('dataPreviewModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add new modal to page
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('dataPreviewModal'));
+            modal.show();
+            
+            // Clean up when modal is hidden
+            document.getElementById('dataPreviewModal').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
+        } catch (error) {
+            console.error('Error showing data preview modal:', error);
         }
     };
     
@@ -465,6 +651,39 @@
             }
         } catch (error) {
             console.error('Error clearing files:', error);
+        }
+    };
+    
+    const showLoadingSpinner = function() {
+        try {
+            // Create spinner overlay if it doesn't exist
+            let spinner = document.getElementById('uploadSpinner');
+            if (!spinner) {
+                const spinnerHtml = `
+                    <div id="uploadSpinner" class="upload-spinner">
+                        <div class="spinner-content">
+                            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+                            <div class="mt-3">Processing files...</div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', spinnerHtml);
+                spinner = document.getElementById('uploadSpinner');
+            }
+            spinner.style.display = 'flex';
+        } catch (error) {
+            console.error('Error showing loading spinner:', error);
+        }
+    };
+    
+    const hideLoadingSpinner = function() {
+        try {
+            const spinner = document.getElementById('uploadSpinner');
+            if (spinner) {
+                spinner.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error hiding loading spinner:', error);
         }
     };
     
@@ -502,10 +721,16 @@
             try {
                 const file = uploadedFiles.find(f => f.id == fileId);
                 if (file) {
+                    // First, unselect all worksheets for this file
+                    file.worksheets.forEach(ws => ws.selected = false);
+                    
+                    // Then select the clicked worksheet
                     const worksheet = file.worksheets.find(ws => ws.id === worksheetId);
                     if (worksheet) {
-                        worksheet.selected = !worksheet.selected;
-                        renderFileList();
+                        worksheet.selected = true;
+                        
+                        // Load headers for the selected worksheet
+                        loadWorksheetHeaders(fileId, worksheet.name);
                     }
                 }
             } catch (error) {

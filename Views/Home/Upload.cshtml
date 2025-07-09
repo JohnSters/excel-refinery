@@ -3,6 +3,8 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+@Html.AntiForgeryToken()
+
 @section Styles {
     <link rel="stylesheet" href="~/css/styling-template.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/upload.css" asp-append-version="true" />
