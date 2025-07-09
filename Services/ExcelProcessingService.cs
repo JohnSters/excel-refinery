@@ -9,6 +9,7 @@ namespace ExcelRefinery.Services
         Task<FileAnalysisResult> AnalyzeFileAsync(IFormFile file);
         Task<DataPreviewResult> GetDataPreviewAsync(string filePath, string worksheetName, int maxRows = 10);
         Task<List<HeaderMapping>> DetectAndMapHeadersAsync(string filePath, string worksheetName);
+        void CleanupOldTempFiles(int maxAgeHours = 24);
     }
 
     public class ExcelProcessingService : IExcelProcessingService
@@ -113,14 +114,31 @@ namespace ExcelRefinery.Services
                     
                     _logger.LogInformation("Processing Excel file with {WorksheetCount} worksheets", workbook.Worksheets.Count);
                     
-                    foreach (var worksheet in workbook.Worksheets)
+                                    var skippedWorksheets = new List<string>();
+                
+                foreach (var worksheet in workbook.Worksheets)
+                {
+                    var worksheetInfo = AnalyzeWorksheet(worksheet, result.FileId);
+                    
+                    if (worksheetInfo != null)
                     {
-                        var worksheetInfo = AnalyzeWorksheet(worksheet, result.FileId);
                         result.Worksheets.Add(worksheetInfo);
                         
                         _logger.LogInformation("Analyzed worksheet '{WorksheetName}' with {RowCount} rows and {ColumnCount} columns", 
                             worksheetInfo.Name, worksheetInfo.RowCount, worksheetInfo.ColumnCount);
                     }
+                    else
+                    {
+                        skippedWorksheets.Add(worksheet.Name);
+                        _logger.LogWarning("Skipped worksheet '{WorksheetName}' - no data found after headers", worksheet.Name);
+                    }
+                }
+                
+                // Add warnings for skipped worksheets
+                if (skippedWorksheets.Any())
+                {
+                    result.ValidationWarnings.Add($"Skipped {skippedWorksheets.Count} worksheet(s) with no data: {string.Join(", ", skippedWorksheets)}");
+                }
 
                     // If we have worksheets, select the first one by default and get its headers
                     if (result.Worksheets.Any())
@@ -195,7 +213,7 @@ namespace ExcelRefinery.Services
             }
         }
 
-        private WorksheetInfo AnalyzeWorksheet(IXLWorksheet worksheet, string fileId)
+        private WorksheetInfo? AnalyzeWorksheet(IXLWorksheet worksheet, string fileId)
         {
             var worksheetInfo = new WorksheetInfo
             {
@@ -216,12 +234,39 @@ namespace ExcelRefinery.Services
                 }
 
                 worksheetInfo.RowCount = usedRange.RowCount();
-                worksheetInfo.ColumnCount = usedRange.ColumnCount();
+                
+                // Check if there's actual data after headers (row 2 and beyond)
+                bool hasDataAfterHeaders = false;
+                if (worksheetInfo.RowCount > 1)
+                {
+                    // Check row 2 for any non-empty data
+                    for (int col = 1; col <= usedRange.ColumnCount(); col++)
+                    {
+                        var cellValue = worksheet.Cell(2, col).GetString().Trim();
+                        if (!string.IsNullOrEmpty(cellValue) && !IsLikelyFilterValue(cellValue))
+                        {
+                            hasDataAfterHeaders = true;
+                            break;
+                        }
+                    }
+                }
 
-                // Extract headers from row 1
+                // If no data found after headers, mark this worksheet as having issues
+                if (!hasDataAfterHeaders && worksheetInfo.RowCount > 1)
+                {
+                    _logger.LogWarning("Worksheet '{WorksheetName}' has headers but no data in row 2", worksheet.Name);
+                    // Don't return this worksheet - it will be filtered out
+                    return null;
+                }
+
+                // Only count columns that have data (not just empty columns)
+                var columnsWithData = GetColumnsWithData(worksheet, usedRange);
+                worksheetInfo.ColumnCount = columnsWithData.Count;
+
+                // Extract headers only from columns that have data
                 if (worksheetInfo.RowCount > 0)
                 {
-                    for (int col = 1; col <= worksheetInfo.ColumnCount; col++)
+                    foreach (var col in columnsWithData)
                     {
                         var cellValue = worksheet.Cell(1, col).GetString().Trim();
                         worksheetInfo.DetectedHeaders.Add(!string.IsNullOrEmpty(cellValue) ? cellValue : $"Column_{col}");
@@ -229,11 +274,11 @@ namespace ExcelRefinery.Services
                 }
 
                 // Get first data row preview (row 2 since row 1 is headers)
-                if (worksheetInfo.RowCount > 1)
+                if (worksheetInfo.RowCount > 1 && hasDataAfterHeaders)
                 {
                     var previewValues = new List<string>();
                     
-                    for (int col = 1; col <= Math.Min(worksheetInfo.ColumnCount, 5); col++)
+                    foreach (var col in columnsWithData.Take(5))
                     {
                         var cellValue = worksheet.Cell(2, col).GetString().Trim();
                         previewValues.Add(string.IsNullOrEmpty(cellValue) ? "[empty]" : cellValue);
@@ -250,6 +295,58 @@ namespace ExcelRefinery.Services
             return worksheetInfo;
         }
 
+        private List<int> GetColumnsWithData(IXLWorksheet worksheet, IXLRange usedRange)
+        {
+            var columnsWithData = new List<int>();
+            
+            try
+            {
+                for (int col = 1; col <= usedRange.ColumnCount(); col++)
+                {
+                    bool hasData = false;
+                    
+                    // Check if this column has any data from row 2 onwards (skip header row)
+                    for (int row = 2; row <= usedRange.RowCount(); row++)
+                    {
+                        var cellValue = worksheet.Cell(row, col).GetString().Trim();
+                        if (!string.IsNullOrEmpty(cellValue) && !IsLikelyFilterValue(cellValue))
+                        {
+                            hasData = true;
+                            break;
+                        }
+                    }
+                    
+                    // Also check if the header itself has content (don't skip columns with headers but no data yet)
+                    if (!hasData)
+                    {
+                        var headerValue = worksheet.Cell(1, col).GetString().Trim();
+                        if (!string.IsNullOrEmpty(headerValue))
+                        {
+                            // Include columns with headers even if no data yet, but log it
+                            hasData = true;
+                            _logger.LogDebug("Column {Column} has header '{Header}' but no data", col, headerValue);
+                        }
+                    }
+                    
+                    if (hasData)
+                    {
+                        columnsWithData.Add(col);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting columns with data for worksheet {WorksheetName}", worksheet.Name);
+                // Fallback: return all columns
+                for (int col = 1; col <= usedRange.ColumnCount(); col++)
+                {
+                    columnsWithData.Add(col);
+                }
+            }
+            
+            return columnsWithData;
+        }
+
         private List<HeaderMapping> GetWorksheetHeaders(IXLWorksheet worksheet)
         {
             var headers = new List<HeaderMapping>();
@@ -262,8 +359,11 @@ namespace ExcelRefinery.Services
                     return headers;
                 }
 
-                // Read headers from row 1
-                for (int col = 1; col <= usedRange.ColumnCount(); col++)
+                // Get only columns that have data
+                var columnsWithData = GetColumnsWithData(worksheet, usedRange);
+                
+                // Read headers only from columns that have data
+                foreach (var col in columnsWithData)
                 {
                     var headerValue = worksheet.Cell(1, col).GetString().Trim();
                     var displayName = !string.IsNullOrEmpty(headerValue) ? headerValue : $"Column_{col}";
