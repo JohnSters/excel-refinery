@@ -1,0 +1,712 @@
+@{
+    ViewData["Title"] = "Upload Excel Files - ExcelRefinery";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styling-template.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        .upload-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .upload-zone {
+            border: 3px dashed var(--pacific-cyan);
+            border-radius: var(--border-radius-lg);
+            padding: 3rem;
+            text-align: center;
+            background: var(--light-cyan);
+            transition: all var(--transition-normal);
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .upload-zone:hover {
+            border-color: var(--honolulu-blue);
+            background: var(--non-photo-blue);
+        }
+        
+        .upload-zone.dragover {
+            border-color: var(--honolulu-blue);
+            background: var(--non-photo-blue);
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            color: var(--pacific-cyan);
+            margin-bottom: 1rem;
+        }
+        
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .file-list {
+            margin-top: 2rem;
+        }
+        
+        .file-item {
+            background: var(--white);
+            border-radius: var(--border-radius-md);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--pacific-cyan);
+        }
+        
+        .file-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .file-icon {
+            font-size: 2rem;
+            color: var(--success-green);
+        }
+        
+        .file-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .detail-item {
+            background: var(--light-grey);
+            padding: 1rem;
+            border-radius: var(--border-radius-sm);
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .detail-value {
+            color: var(--federal-blue);
+            font-weight: 500;
+        }
+        
+        .worksheets-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .worksheet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .worksheet-card {
+            background: var(--light-grey);
+            border-radius: var(--border-radius-md);
+            padding: 1rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: 2px solid transparent;
+        }
+        
+        .worksheet-card:hover {
+            background: var(--non-photo-blue);
+        }
+        
+        .worksheet-card.selected {
+            border-color: var(--pacific-cyan);
+            background: var(--light-cyan);
+        }
+        
+        .worksheet-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .worksheet-name {
+            font-weight: 600;
+            color: var(--federal-blue);
+            margin-bottom: 0.5rem;
+        }
+        
+        .worksheet-stats {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .headers-section {
+            margin-top: 1.5rem;
+        }
+        
+        .headers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .header-item {
+            background: var(--light-grey);
+            padding: 0.75rem;
+            border-radius: var(--border-radius-sm);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .header-item:hover {
+            background: var(--non-photo-blue);
+        }
+        
+        .header-item.selected {
+            background: var(--light-cyan);
+            border: 1px solid var(--pacific-cyan);
+        }
+        
+        .header-checkbox {
+            margin: 0;
+        }
+        
+        .header-name {
+            font-weight: 500;
+            color: var(--federal-blue);
+            font-size: 0.875rem;
+        }
+        
+        .progress-section {
+            background: var(--light-grey);
+            padding: 1rem;
+            border-radius: var(--border-radius-md);
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .process-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--border-radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-processing {
+            background: var(--warning-amber-light);
+            color: #f57c00;
+        }
+        
+        .status-ready {
+            background: var(--success-green-light);
+            color: #2e7d32;
+        }
+        
+        .status-error {
+            background: var(--error-red-light);
+            color: #c62828;
+        }
+        
+        @@media (max-width: 768px) {
+            .file-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+            
+            .file-info {
+                justify-content: center;
+            }
+            
+            .process-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+}
+
+<div class="upload-container">
+    <!-- Page Header -->
+    <div class="styling-section">
+        <div class="text-center mb-4">
+            <h1 style="color: var(--federal-blue); font-weight: 700;">
+                <i class="material-icons" style="font-size: 3rem; vertical-align: middle; margin-right: 1rem;">cloud_upload</i>
+                Upload Excel Files
+            </h1>
+            <p class="lead" style="color: var(--text-secondary);">
+                Upload your Excel files for processing, validation, and analysis
+            </p>
+        </div>
+
+        <!-- Upload Zone -->
+        <div class="upload-zone" id="uploadZone">
+            <input type="file" id="fileInput" class="file-input" multiple accept=".xlsx,.xls,.csv">
+            <div class="upload-content">
+                <i class="material-icons upload-icon">cloud_upload</i>
+                <h3 style="color: var(--federal-blue); margin-bottom: 1rem;">Drop Excel files here or click to browse</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Supports .xlsx, .xls, and .csv files • Multiple files supported • Max 50MB per file
+                </p>
+                <div class="btn-excel btn-excel-primary">
+                    <i class="material-icons">folder_open</i>
+                    Select Files
+                </div>
+            </div>
+        </div>
+
+        <!-- Supported Formats Info -->
+        <div class="alert-excel alert-excel-info" style="margin-top: 1rem;">
+            <i class="material-icons">info</i>
+            <span>Supported formats: Excel (.xlsx, .xls) and CSV (.csv) files. The system will automatically detect headers and worksheets.</span>
+        </div>
+    </div>
+
+    <!-- File List Section -->
+    <div id="fileListSection" class="file-list" style="display: none;">
+        <div class="styling-section">
+            <h2 style="color: var(--federal-blue); margin-bottom: 1.5rem;">
+                <i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">description</i>
+                Uploaded Files
+            </h2>
+            <div id="fileList"></div>
+        </div>
+    </div>
+
+    <!-- Process Controls -->
+    <div id="processSection" class="styling-section" style="display: none;">
+        <h2 style="color: var(--federal-blue); margin-bottom: 1.5rem;">
+            <i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">settings</i>
+            Processing Options
+        </h2>
+        
+        <div class="alert-excel alert-excel-success">
+            <i class="material-icons">check_circle</i>
+            <span>Files successfully analyzed and ready for processing</span>
+        </div>
+
+        <div class="process-buttons">
+            <button class="btn-excel btn-excel-primary btn-excel-lg" id="processFiles">
+                <i class="material-icons">play_arrow</i>
+                Start Processing
+            </button>
+            <button class="btn-excel btn-excel-secondary btn-excel-lg" id="previewData">
+                <i class="material-icons">preview</i>
+                Preview Data
+            </button>
+            <button class="btn-excel btn-excel-outline btn-excel-lg" id="clearFiles">
+                <i class="material-icons">clear_all</i>
+                Clear All Files
+            </button>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <h6 style="color: var(--federal-blue); margin-bottom: 1rem;">Processing Progress</h6>
+            <div class="progress-excel">
+                <div class="progress-excel-bar" id="progressBar" style="width: 0%;"></div>
+            </div>
+            <p id="progressText" style="margin-top: 0.5rem; color: var(--text-secondary);">Initializing...</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/styling-template.js" asp-append-version="true"></script>
+    <script>
+        /**
+         * Excel File Upload Handler
+         * File: Upload.cshtml inline script
+         * Description: Handles file upload, preview, and worksheet selection
+         * Author: ExcelRefinery Development Team
+         */
+        
+        (function() {
+            'use strict';
+            
+            // Global variables
+            let uploadedFiles = [];
+            let selectedWorksheets = new Set();
+            let selectedHeaders = new Set();
+            
+            // DOM elements
+            const uploadZone = document.getElementById('uploadZone');
+            const fileInput = document.getElementById('fileInput');
+            const fileListSection = document.getElementById('fileListSection');
+            const fileList = document.getElementById('fileList');
+            const processSection = document.getElementById('processSection');
+            const progressSection = document.getElementById('progressSection');
+            
+            // Initialize upload functionality
+            function initializeUpload() {
+                // Click to upload
+                uploadZone.addEventListener('click', () => fileInput.click());
+                
+                // File input change
+                fileInput.addEventListener('change', handleFileSelect);
+                
+                // Drag and drop events
+                uploadZone.addEventListener('dragover', handleDragOver);
+                uploadZone.addEventListener('dragleave', handleDragLeave);
+                uploadZone.addEventListener('drop', handleDrop);
+                
+                // Process buttons
+                document.getElementById('processFiles').addEventListener('click', startProcessing);
+                document.getElementById('previewData').addEventListener('click', previewData);
+                document.getElementById('clearFiles').addEventListener('click', clearAllFiles);
+            }
+            
+            function handleDragOver(e) {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            }
+            
+            function handleDragLeave(e) {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+            }
+            
+            function handleDrop(e) {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files);
+                processFiles(files);
+            }
+            
+            function handleFileSelect(e) {
+                const files = Array.from(e.target.files);
+                processFiles(files);
+            }
+            
+            function processFiles(files) {
+                files.forEach(file => {
+                    if (validateFile(file)) {
+                        analyzeFile(file);
+                    }
+                });
+            }
+            
+            function validateFile(file) {
+                const validTypes = [
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-excel',
+                    'text/csv'
+                ];
+                
+                const validExtensions = ['.xlsx', '.xls', '.csv'];
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+                
+                if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
+                    alert('Invalid file type. Please upload Excel (.xlsx, .xls) or CSV (.csv) files.');
+                    return false;
+                }
+                
+                if (file.size > 50 * 1024 * 1024) { // 50MB limit
+                    alert('File size too large. Maximum size is 50MB.');
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            function analyzeFile(file) {
+                // Create mock file analysis (in real app, this would use a library like SheetJS)
+                const mockWorksheets = generateMockWorksheets(file.name);
+                const mockHeaders = generateMockHeaders();
+                
+                const fileData = {
+                    id: Date.now() + Math.random(),
+                    file: file,
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    lastModified: new Date(file.lastModified),
+                    worksheets: mockWorksheets,
+                    headers: mockHeaders,
+                    status: 'ready'
+                };
+                
+                uploadedFiles.push(fileData);
+                renderFileList();
+                showProcessSection();
+            }
+            
+            function generateMockWorksheets(filename) {
+                const worksheetNames = ['Equipment_Data', 'Maintenance_Schedule', 'Task_List', 'Summary'];
+                const selectedSheets = worksheetNames.slice(0, Math.floor(Math.random() * 3) + 1);
+                
+                return selectedSheets.map((name, index) => ({
+                    id: `ws_${index}`,
+                    name: name,
+                    rows: Math.floor(Math.random() * 1000) + 100,
+                    columns: Math.floor(Math.random() * 20) + 10,
+                    selected: index === 0 // First sheet selected by default
+                }));
+            }
+            
+            function generateMockHeaders() {
+                const standardHeaders = [
+                    'Equipment ID', 'CMMS System', 'Equipment Technical Number',
+                    'Task ID', 'Task Type', 'Task Description', 'Task Details',
+                    'Last Date', 'Override Interval', 'Desired Interval',
+                    'Reoccurring', 'Next Date', 'Next Date Basis',
+                    'Task Assigned To', 'Reason', 'Related Entity ID'
+                ];
+                
+                return standardHeaders.map((header, index) => ({
+                    id: `header_${index}`,
+                    name: header,
+                    type: getHeaderType(header),
+                    selected: ['Equipment ID', 'Task ID', 'Task Type'].includes(header)
+                }));
+            }
+            
+            function getHeaderType(header) {
+                if (header.includes('Date')) return 'Date';
+                if (header.includes('ID') || header.includes('Interval')) return 'Numeric';
+                if (header.includes('Reoccurring')) return 'Boolean';
+                return 'Text';
+            }
+            
+            function renderFileList() {
+                fileList.innerHTML = '';
+                
+                uploadedFiles.forEach(fileData => {
+                    const fileElement = createFileElement(fileData);
+                    fileList.appendChild(fileElement);
+                });
+                
+                fileListSection.style.display = 'block';
+            }
+            
+            function createFileElement(fileData) {
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'file-item';
+                fileDiv.innerHTML = `
+                    <div class="file-header">
+                        <div class="file-info">
+                            <i class="material-icons file-icon">description</i>
+                            <div>
+                                <h4 style="color: var(--federal-blue); margin: 0;">${fileData.name}</h4>
+                                <span class="status-badge status-${fileData.status}">
+                                    <i class="material-icons" style="font-size: 1rem;">check_circle</i>
+                                    Ready for processing
+                                </span>
+                            </div>
+                        </div>
+                        <button class="btn-excel btn-excel-danger btn-excel-sm" onclick="removeFile('${fileData.id}')">
+                            <i class="material-icons">delete</i>
+                            Remove
+                        </button>
+                    </div>
+                    
+                    <div class="file-details">
+                        <div class="detail-item">
+                            <div class="detail-label">File Size</div>
+                            <div class="detail-value">${formatFileSize(fileData.size)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">File Type</div>
+                            <div class="detail-value">${getFileTypeDisplay(fileData.type, fileData.name)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Last Modified</div>
+                            <div class="detail-value">${fileData.lastModified.toLocaleDateString()}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Worksheets</div>
+                            <div class="detail-value">${fileData.worksheets.length} sheet(s)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="worksheets-section">
+                        <h5 style="color: var(--federal-blue); margin-bottom: 0.5rem;">
+                            <i class="material-icons" style="font-size: 1.2rem; vertical-align: middle; margin-right: 0.5rem;">tab</i>
+                            Worksheets
+                        </h5>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                            Select which worksheets to include in processing
+                        </p>
+                        <div class="worksheet-grid">
+                            ${fileData.worksheets.map(ws => createWorksheetCard(ws, fileData.id)).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="headers-section">
+                        <h5 style="color: var(--federal-blue); margin-bottom: 0.5rem;">
+                            <i class="material-icons" style="font-size: 1.2rem; vertical-align: middle; margin-right: 0.5rem;">view_column</i>
+                            Column Headers
+                        </h5>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                            Select which columns to include in processing
+                        </p>
+                        <div class="headers-grid">
+                            ${fileData.headers.map(header => createHeaderItem(header, fileData.id)).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                return fileDiv;
+            }
+            
+            function createWorksheetCard(worksheet, fileId) {
+                return `
+                    <div class="worksheet-card ${worksheet.selected ? 'selected' : ''}" 
+                         onclick="toggleWorksheet('${fileId}', '${worksheet.id}')">
+                        <div class="worksheet-name">${worksheet.name}</div>
+                        <div class="worksheet-stats">
+                            ${worksheet.rows.toLocaleString()} rows • ${worksheet.columns} columns
+                        </div>
+                    </div>
+                `;
+            }
+            
+            function createHeaderItem(header, fileId) {
+                return `
+                    <div class="header-item ${header.selected ? 'selected' : ''}" 
+                         onclick="toggleHeader('${fileId}', '${header.id}')">
+                        <input type="checkbox" class="header-checkbox" ${header.selected ? 'checked' : ''} 
+                               onchange="event.stopPropagation()">
+                        <div class="header-name">${header.name}</div>
+                    </div>
+                `;
+            }
+            
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            function getFileTypeDisplay(type, name) {
+                const extension = name.split('.').pop().toLowerCase();
+                switch (extension) {
+                    case 'xlsx': return 'Excel Workbook (.xlsx)';
+                    case 'xls': return 'Excel 97-2003 (.xls)';
+                    case 'csv': return 'CSV File (.csv)';
+                    default: return type || 'Unknown';
+                }
+            }
+            
+            function showProcessSection() {
+                if (uploadedFiles.length > 0) {
+                    processSection.style.display = 'block';
+                }
+            }
+            
+            function startProcessing() {
+                progressSection.style.display = 'block';
+                simulateProcessing();
+            }
+            
+            function simulateProcessing() {
+                let progress = 0;
+                const progressBar = document.getElementById('progressBar');
+                const progressText = document.getElementById('progressText');
+                
+                const interval = setInterval(() => {
+                    progress += Math.random() * 15;
+                    if (progress >= 100) {
+                        progress = 100;
+                        clearInterval(interval);
+                        progressText.textContent = 'Processing completed successfully!';
+                        
+                        setTimeout(() => {
+                            StylingTemplate.showDemoAlert('success', 'Files processed successfully! Results are ready for review.');
+                        }, 500);
+                    } else {
+                        progressText.textContent = `Processing files... ${Math.round(progress)}%`;
+                    }
+                    progressBar.style.width = progress + '%';
+                }, 500);
+            }
+            
+            function previewData() {
+                StylingTemplate.showDemoAlert('info', 'Data preview functionality coming soon!');
+            }
+            
+            function clearAllFiles() {
+                if (confirm('Are you sure you want to clear all uploaded files?')) {
+                    uploadedFiles = [];
+                    selectedWorksheets.clear();
+                    selectedHeaders.clear();
+                    fileListSection.style.display = 'none';
+                    processSection.style.display = 'none';
+                    progressSection.style.display = 'none';
+                    fileInput.value = '';
+                }
+            }
+            
+            // Global functions for onclick handlers
+            window.removeFile = function(fileId) {
+                uploadedFiles = uploadedFiles.filter(f => f.id != fileId);
+                if (uploadedFiles.length === 0) {
+                    fileListSection.style.display = 'none';
+                    processSection.style.display = 'none';
+                } else {
+                    renderFileList();
+                }
+            };
+            
+            window.toggleWorksheet = function(fileId, worksheetId) {
+                const file = uploadedFiles.find(f => f.id == fileId);
+                if (file) {
+                    const worksheet = file.worksheets.find(ws => ws.id === worksheetId);
+                    if (worksheet) {
+                        worksheet.selected = !worksheet.selected;
+                        renderFileList();
+                    }
+                }
+            };
+            
+            window.toggleHeader = function(fileId, headerId) {
+                const file = uploadedFiles.find(f => f.id == fileId);
+                if (file) {
+                    const header = file.headers.find(h => h.id === headerId);
+                    if (header) {
+                        header.selected = !header.selected;
+                        renderFileList();
+                    }
+                }
+            };
+            
+            // Initialize when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeUpload);
+            } else {
+                initializeUpload();
+            }
+            
+        })();
+    </script>
+} 

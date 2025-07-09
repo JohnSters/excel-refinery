@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using ExcelRefinery.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ExcelRefinery.Controllers
 {
@@ -32,6 +33,12 @@ namespace ExcelRefinery.Controllers
         }
 
         public IActionResult StylingTemplate()
+        {
+            return View();
+        }
+
+        [Authorize]
+        public IActionResult Upload()
         {
             return View();
         }
