@@ -235,14 +235,14 @@ namespace ExcelRefinery.Services
 
                 worksheetInfo.RowCount = usedRange.RowCount();
                 
-                // Check if there's actual data after headers (row 2 and beyond)
+                // Check if there's actual data after headers (row 3 and beyond, since row 2 may contain filters)
                 bool hasDataAfterHeaders = false;
-                if (worksheetInfo.RowCount > 1)
+                if (worksheetInfo.RowCount > 2)
                 {
-                    // Check row 2 for any non-empty data
+                    // Check row 3 for any non-empty data (skip row 2 which often contains filters)
                     for (int col = 1; col <= usedRange.ColumnCount(); col++)
                     {
-                        var cellValue = worksheet.Cell(2, col).GetString().Trim();
+                        var cellValue = worksheet.Cell(3, col).GetString().Trim();
                         if (!string.IsNullOrEmpty(cellValue) && !IsLikelyFilterValue(cellValue))
                         {
                             hasDataAfterHeaders = true;
@@ -251,10 +251,10 @@ namespace ExcelRefinery.Services
                     }
                 }
 
-                // If no data found after headers, mark this worksheet as having issues
-                if (!hasDataAfterHeaders && worksheetInfo.RowCount > 1)
+                // If no data found after headers and filters, mark this worksheet as having issues
+                if (!hasDataAfterHeaders && worksheetInfo.RowCount > 2)
                 {
-                    _logger.LogWarning("Worksheet '{WorksheetName}' has headers but no data in row 2", worksheet.Name);
+                    _logger.LogWarning("Worksheet '{WorksheetName}' has headers but no actual data in row 3+", worksheet.Name);
                     // Don't return this worksheet - it will be filtered out
                     return null;
                 }
@@ -273,14 +273,14 @@ namespace ExcelRefinery.Services
                     }
                 }
 
-                // Get first data row preview (row 2 since row 1 is headers)
-                if (worksheetInfo.RowCount > 1 && hasDataAfterHeaders)
+                // Get first data row preview (row 3 since row 1 is headers and row 2 often contains filters)
+                if (worksheetInfo.RowCount > 2 && hasDataAfterHeaders)
                 {
                     var previewValues = new List<string>();
                     
                     foreach (var col in columnsWithData.Take(5))
                     {
-                        var cellValue = worksheet.Cell(2, col).GetString().Trim();
+                        var cellValue = worksheet.Cell(3, col).GetString().Trim();
                         previewValues.Add(string.IsNullOrEmpty(cellValue) ? "[empty]" : cellValue);
                     }
                     
@@ -305,8 +305,8 @@ namespace ExcelRefinery.Services
                 {
                     bool hasData = false;
                     
-                    // Check if this column has any data from row 2 onwards (skip header row)
-                    for (int row = 2; row <= usedRange.RowCount(); row++)
+                    // Check if this column has any data from row 3 onwards (skip header row 1 and filter row 2)
+                    for (int row = 3; row <= usedRange.RowCount(); row++)
                     {
                         var cellValue = worksheet.Cell(row, col).GetString().Trim();
                         if (!string.IsNullOrEmpty(cellValue) && !IsLikelyFilterValue(cellValue))
@@ -368,12 +368,12 @@ namespace ExcelRefinery.Services
                     var headerValue = worksheet.Cell(1, col).GetString().Trim();
                     var displayName = !string.IsNullOrEmpty(headerValue) ? headerValue : $"Column_{col}";
                     
-                    // Get sample data from the next few rows (skip potential filter rows)
+                    // Get sample data starting from row 3 (row 2 often contains filters)
                     var sampleValues = new List<string>();
                     int samplesFound = 0;
                     
-                    // Start from row 2 and go deeper to find actual data (not filters)
-                    for (int row = 2; row <= usedRange.RowCount() && samplesFound < 3; row++)
+                    // Start from row 3 to skip headers (row 1) and filters (row 2)
+                    for (int row = 3; row <= usedRange.RowCount() && samplesFound < 3; row++)
                     {
                         var cellValue = worksheet.Cell(row, col).GetString().Trim();
                         
@@ -498,7 +498,7 @@ namespace ExcelRefinery.Services
                     return result;
                 }
 
-                result.TotalRows = usedRange.RowCount();
+                result.TotalRows = Math.Max(0, usedRange.RowCount() - 2); // Exclude header and filter rows
                 
                 // Extract headers
                 var headerRow = worksheet.Row(1);
@@ -507,8 +507,8 @@ namespace ExcelRefinery.Services
                     result.Headers.Add(cell.GetString().Trim());
                 }
 
-                // Extract data rows
-                var startRow = 2; // Skip header
+                // Extract data rows starting from row 3 (skip header row 1 and filter row 2)
+                var startRow = 3; // Skip header and filter rows
                 var endRow = Math.Min(startRow + maxRows - 1, result.TotalRows);
                 
                 for (int rowIndex = startRow; rowIndex <= endRow; rowIndex++)
@@ -525,7 +525,7 @@ namespace ExcelRefinery.Services
                     result.Rows.Add(rowData);
                 }
 
-                result.HasMoreData = result.TotalRows > maxRows + 1; // +1 for header
+                result.HasMoreData = result.TotalRows > maxRows + 2; // +2 for header and filter rows
             }
             catch (Exception ex)
             {
