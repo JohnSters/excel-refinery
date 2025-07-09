@@ -1,0 +1,531 @@
+@{
+    ViewData["Title"] = "ExcelRefinery Styling Template";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styling-template.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+}
+
+<div class="styling-template">
+    <div class="container">
+        <!-- Header -->
+        <div class="styling-section">
+            <div class="text-center mb-4">
+                <h1 class="display-4" style="color: var(--federal-blue); font-weight: 700;">ExcelRefinery Design System</h1>
+                <p class="lead" style="color: var(--text-secondary);">Comprehensive styling template and component library</p>
+                <div class="alert-excel alert-excel-info">
+                    <i class="material-icons">info</i>
+                    <span>This page showcases all available UI components and styling guidelines for the ExcelRefinery application.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Color Palette -->
+        <div class="styling-section">
+            <h2><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">palette</i>Color Palette</h2>
+            <p>Click on any color to copy its hex code to clipboard.</p>
+            
+            <div class="color-palette">
+                <div class="color-swatch">
+                    <div class="color-sample color-federal-blue">Federal Blue</div>
+                    <div class="color-info" data-color="#03045e">#03045e</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample color-honolulu-blue">Honolulu Blue</div>
+                    <div class="color-info" data-color="#0077b6">#0077b6</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample color-pacific-cyan">Pacific Cyan</div>
+                    <div class="color-info" data-color="#00b4d8">#00b4d8</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample color-non-photo-blue">Non-Photo Blue</div>
+                    <div class="color-info" data-color="#90e0ef">#90e0ef</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample color-light-cyan">Light Cyan</div>
+                    <div class="color-info" data-color="#caf0f8">#caf0f8</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="styling-section">
+            <h2><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">smart_button</i>Buttons</h2>
+            
+            <h3>Primary Buttons</h3>
+            <div class="component-grid">
+                <div class="component-example">
+                    <button class="btn-excel btn-excel-primary">
+                        <i class="material-icons">upload_file</i>
+                        Upload File
+                    </button>
+                    <p><code>.btn-excel-primary</code></p>
+                </div>
+                <div class="component-example">
+                    <button class="btn-excel btn-excel-secondary">
+                        <i class="material-icons">download</i>
+                        Download
+                    </button>
+                    <p><code>.btn-excel-secondary</code></p>
+                </div>
+                <div class="component-example">
+                    <button class="btn-excel btn-excel-outline">
+                        <i class="material-icons">edit</i>
+                        Edit
+                    </button>
+                    <p><code>.btn-excel-outline</code></p>
+                </div>
+            </div>
+
+            <h3>Status Buttons</h3>
+            <div class="component-grid">
+                <div class="component-example">
+                    <button class="btn-excel btn-excel-success">
+                        <i class="material-icons">check</i>
+                        Success
+                    </button>
+                    <p><code>.btn-excel-success</code></p>
+                </div>
+                <div class="component-example">
+                    <button class="btn-excel btn-excel-warning">
+                        <i class="material-icons">warning</i>
+                        Warning
+                    </button>
+                    <p><code>.btn-excel-warning</code></p>
+                </div>
+                <div class="component-example">
+                    <button class="btn-excel btn-excel-danger">
+                        <i class="material-icons">error</i>
+                        Delete
+                    </button>
+                    <p><code>.btn-excel-danger</code></p>
+                </div>
+            </div>
+
+            <h3>Button Sizes</h3>
+            <div class="component-grid">
+                <div class="component-example">
+                    <button class="btn-excel btn-excel-primary btn-excel-sm">Small</button>
+                    <p><code>.btn-excel-sm</code></p>
+                </div>
+                <div class="component-example">
+                    <button class="btn-excel btn-excel-primary">Regular</button>
+                    <p>Default size</p>
+                </div>
+                <div class="component-example">
+                    <button class="btn-excel btn-excel-primary btn-excel-lg">Large</button>
+                    <p><code>.btn-excel-lg</code></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cards -->
+        <div class="styling-section">
+            <h2><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">view_module</i>Cards</h2>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card-excel">
+                        <div class="card-excel-header">
+                            <h4><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">table_chart</i>Data Processing</h4>
+                        </div>
+                        <div class="card-excel-body">
+                            <p>Process and analyze Excel files with advanced validation and transformation capabilities.</p>
+                            <div class="progress-excel">
+                                <div class="progress-excel-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="card-excel-footer">
+                            <button class="btn-excel btn-excel-primary btn-excel-sm">
+                                <i class="material-icons">play_arrow</i>
+                                Start Process
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card-excel">
+                        <div class="card-excel-header">
+                            <h4><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">analytics</i>Data Analysis</h4>
+                        </div>
+                        <div class="card-excel-body">
+                            <p>Generate insights and reports from your refined data with comprehensive analytics tools.</p>
+                            <div class="progress-excel">
+                                <div class="progress-excel-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="card-excel-footer">
+                            <button class="btn-excel btn-excel-secondary btn-excel-sm">
+                                <i class="material-icons">assessment</i>
+                                View Reports
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card-excel">
+                        <div class="card-excel-header">
+                            <h4><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">cloud_upload</i>File Management</h4>
+                        </div>
+                        <div class="card-excel-body">
+                            <p>Upload, organize, and manage your Excel files with version control and backup features.</p>
+                            <div class="progress-excel">
+                                <div class="progress-excel-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="card-excel-footer">
+                            <button class="btn-excel btn-excel-outline btn-excel-sm">
+                                <i class="material-icons">folder_open</i>
+                                Browse Files
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forms and Inputs -->
+        <div class="styling-section">
+            <h2><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">input</i>Forms & Inputs</h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group-excel">
+                        <label class="form-label-excel">File Name</label>
+                        <input type="text" class="form-control-excel" placeholder="Enter file name..." value="sample-data.xlsx">
+                    </div>
+                    
+                    <div class="form-group-excel">
+                        <label class="form-label-excel">Processing Type</label>
+                        <div class="select-excel">
+                            <select>
+                                <option>Data Validation</option>
+                                <option>Format Conversion</option>
+                                <option>Duplicate Detection</option>
+                                <option>Data Comparison</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-excel">
+                        <label class="form-label-excel">Description</label>
+                        <textarea class="form-control-excel" rows="3" placeholder="Enter description...">Monthly operational data for refinery equipment maintenance schedule.</textarea>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group-excel">
+                        <label class="form-label-excel">Email Notifications</label>
+                        <input type="email" class="form-control-excel" placeholder="user@excelrefinery.com">
+                    </div>
+                    
+                    <div class="form-group-excel">
+                        <label class="form-label-excel">Priority Level</label>
+                        <div class="select-excel">
+                            <select>
+                                <option>Low</option>
+                                <option>Medium</option>
+                                <option>High</option>
+                                <option>Critical</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-excel">
+                        <label class="form-label-excel">Processing Date</label>
+                        <input type="date" class="form-control-excel" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts and Messages -->
+        <div class="styling-section">
+            <h2><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">notifications</i>Alerts & Messages</h2>
+            
+            <div class="alert-excel alert-excel-success">
+                <i class="material-icons">check_circle</i>
+                <span>File processed successfully! All data validation checks passed.</span>
+            </div>
+            
+            <div class="alert-excel alert-excel-info">
+                <i class="material-icons">info</i>
+                <span>Processing will begin shortly. You'll receive an email notification when complete.</span>
+            </div>
+            
+            <div class="alert-excel alert-excel-warning">
+                <i class="material-icons">warning</i>
+                <span>Warning: 5 potential duplicate entries found. Please review before proceeding.</span>
+            </div>
+            
+            <div class="alert-excel alert-excel-danger">
+                <i class="material-icons">error</i>
+                <span>Error: Unable to process file. Invalid format or corrupted data detected.</span>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="styling-section">
+            <h2><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">navigation</i>Navigation Elements</h2>
+            
+            <h3>Tab Navigation</h3>
+            <div class="nav-excel">
+                <a href="#" class="nav-excel-item active">
+                    <i class="material-icons" style="display: block; margin-bottom: 0.25rem;">dashboard</i>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-excel-item">
+                    <i class="material-icons" style="display: block; margin-bottom: 0.25rem;">upload_file</i>
+                    Upload
+                </a>
+                <a href="#" class="nav-excel-item">
+                    <i class="material-icons" style="display: block; margin-bottom: 0.25rem;">analytics</i>
+                    Reports
+                </a>
+                <a href="#" class="nav-excel-item">
+                    <i class="material-icons" style="display: block; margin-bottom: 0.25rem;">settings</i>
+                    Settings
+                </a>
+            </div>
+        </div>
+
+        <!-- Accordion -->
+        <div class="styling-section">
+            <h2><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">expand_more</i>Accordion</h2>
+            
+            <div class="accordion-excel">
+                <div class="accordion-excel-item">
+                    <div class="accordion-excel-header">
+                        <span><i class="material-icons" style="margin-right: 0.5rem;">table_chart</i>Data Validation Rules</span>
+                        <i class="material-icons accordion-icon">expand_more</i>
+                    </div>
+                    <div class="accordion-excel-content">
+                        <p>Configure validation rules for your Excel data processing:</p>
+                        <ul>
+                            <li>Required field validation</li>
+                            <li>Data type constraints</li>
+                            <li>Value range checking</li>
+                            <li>Format pattern matching</li>
+                        </ul>
+                        <button class="btn-excel btn-excel-primary btn-excel-sm">Configure Rules</button>
+                    </div>
+                </div>
+                
+                <div class="accordion-excel-item">
+                    <div class="accordion-excel-header">
+                        <span><i class="material-icons" style="margin-right: 0.5rem;">compare</i>File Comparison Settings</span>
+                        <i class="material-icons accordion-icon">expand_more</i>
+                    </div>
+                    <div class="accordion-excel-content">
+                        <p>Advanced options for comparing Excel files:</p>
+                        <ul>
+                            <li>Column mapping configuration</li>
+                            <li>Ignore case sensitivity</li>
+                            <li>Date format normalization</li>
+                            <li>Decimal precision handling</li>
+                        </ul>
+                        <button class="btn-excel btn-excel-secondary btn-excel-sm">Setup Comparison</button>
+                    </div>
+                </div>
+                
+                <div class="accordion-excel-item">
+                    <div class="accordion-excel-header">
+                        <span><i class="material-icons" style="margin-right: 0.5rem;">assessment</i>Report Generation</span>
+                        <i class="material-icons accordion-icon">expand_more</i>
+                    </div>
+                    <div class="accordion-excel-content">
+                        <p>Customize your data processing reports:</p>
+                        <ul>
+                            <li>Summary statistics</li>
+                            <li>Error and warning details</li>
+                            <li>Data quality metrics</li>
+                            <li>Export format options</li>
+                        </ul>
+                        <button class="btn-excel btn-excel-outline btn-excel-sm">Generate Report</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tables -->
+        <div class="styling-section">
+            <h2><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">table_view</i>Tables</h2>
+            
+            <table class="table-excel">
+                <thead>
+                    <tr>
+                        <th><i class="material-icons" style="margin-right: 0.5rem;">assignment</i>Task ID</th>
+                        <th>Equipment ID</th>
+                        <th>Task Type</th>
+                        <th>Status</th>
+                        <th>Next Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>TSK-001</td>
+                        <td>PMP-100A</td>
+                        <td>Inspection</td>
+                        <td><span class="badge bg-success" style="background: var(--success-green) !important;">Complete</span></td>
+                        <td>2025-02-15</td>
+                        <td>
+                            <button class="btn-excel btn-excel-primary btn-excel-sm">
+                                <i class="material-icons">edit</i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>TSK-002</td>
+                        <td>HX-200B</td>
+                        <td>Maintenance</td>
+                        <td><span class="badge bg-warning" style="background: var(--warning-amber) !important;">Pending</span></td>
+                        <td>2025-01-30</td>
+                        <td>
+                            <button class="btn-excel btn-excel-warning btn-excel-sm">
+                                <i class="material-icons">schedule</i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>TSK-003</td>
+                        <td>TK-300C</td>
+                        <td>Cleaning</td>
+                        <td><span class="badge bg-info" style="background: var(--pacific-cyan) !important;">In Progress</span></td>
+                        <td>2025-01-25</td>
+                        <td>
+                            <button class="btn-excel btn-excel-secondary btn-excel-sm">
+                                <i class="material-icons">visibility</i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Progress Bars -->
+        <div class="styling-section">
+            <h2><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">trending_up</i>Progress Indicators</h2>
+            
+            <div class="row">
+                <div class="col-md-3">
+                    <h6>File Upload</h6>
+                    <div class="progress-excel">
+                        <div class="progress-excel-bar" style="width: 0%;"></div>
+                    </div>
+                    <small class="text-muted">25% Complete</small>
+                </div>
+                <div class="col-md-3">
+                    <h6>Data Validation</h6>
+                    <div class="progress-excel">
+                        <div class="progress-excel-bar" style="width: 0%;"></div>
+                    </div>
+                    <small class="text-muted">50% Complete</small>
+                </div>
+                <div class="col-md-3">
+                    <h6>Processing</h6>
+                    <div class="progress-excel">
+                        <div class="progress-excel-bar" style="width: 0%;"></div>
+                    </div>
+                    <small class="text-muted">75% Complete</small>
+                </div>
+                <div class="col-md-3">
+                    <h6>Report Generation</h6>
+                    <div class="progress-excel">
+                        <div class="progress-excel-bar" style="width: 0%;"></div>
+                    </div>
+                    <small class="text-muted">90% Complete</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Icons Showcase -->
+        <div class="styling-section">
+            <h2><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">emoji_symbols</i>Material Icons</h2>
+            <p>Common icons used throughout the application:</p>
+            
+            <div class="component-grid">
+                <div class="component-example">
+                    <i class="material-icons" style="font-size: 3rem; color: var(--pacific-cyan);">upload_file</i>
+                    <p><code>upload_file</code></p>
+                </div>
+                <div class="component-example">
+                    <i class="material-icons" style="font-size: 3rem; color: var(--honolulu-blue);">table_chart</i>
+                    <p><code>table_chart</code></p>
+                </div>
+                <div class="component-example">
+                    <i class="material-icons" style="font-size: 3rem; color: var(--federal-blue);">analytics</i>
+                    <p><code>analytics</code></p>
+                </div>
+                <div class="component-example">
+                    <i class="material-icons" style="font-size: 3rem; color: var(--success-green);">check_circle</i>
+                    <p><code>check_circle</code></p>
+                </div>
+                <div class="component-example">
+                    <i class="material-icons" style="font-size: 3rem; color: var(--warning-amber);">warning</i>
+                    <p><code>warning</code></p>
+                </div>
+                <div class="component-example">
+                    <i class="material-icons" style="font-size: 3rem; color: var(--error-red);">error</i>
+                    <p><code>error</code></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demo Section for Interactive Elements -->
+        <div class="styling-section">
+            <h2><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">play_circle</i>Interactive Demo</h2>
+            <p>Test the interactive components:</p>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Alert Demonstrations</h6>
+                    <button class="btn-excel btn-excel-success btn-excel-sm me-2" onclick="StylingTemplate.showDemoAlert('success', 'Demo success message!')">Success Alert</button>
+                    <button class="btn-excel btn-excel-warning btn-excel-sm me-2" onclick="StylingTemplate.showDemoAlert('warning', 'Demo warning message!')">Warning Alert</button>
+                    <button class="btn-excel btn-excel-danger btn-excel-sm me-2" onclick="StylingTemplate.showDemoAlert('danger', 'Demo error message!')">Error Alert</button>
+                    <button class="btn-excel btn-excel-primary btn-excel-sm" onclick="StylingTemplate.showDemoAlert('info', 'Demo info message!')">Info Alert</button>
+                </div>
+                <div class="col-md-6">
+                    <div class="demo-alerts"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Usage Guidelines -->
+        <div class="styling-section">
+            <h2><i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">rule</i>Usage Guidelines</h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h4 style="color: var(--success-green);">✓ Do</h4>
+                    <ul>
+                        <li>Use consistent color scheme throughout</li>
+                        <li>Apply rounded corners to all elements</li>
+                        <li>Include Material Icons for better UX</li>
+                        <li>Use subtle hover effects</li>
+                        <li>Follow material design principles</li>
+                        <li>Maintain accessibility standards</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h4 style="color: var(--error-red);">✗ Don't</h4>
+                    <ul>
+                        <li>Add borders around buttons or cards</li>
+                        <li>Use dropdown shadows</li>
+                        <li>Mix different design patterns</li>
+                        <li>Override the established color palette</li>
+                        <li>Use inconsistent spacing</li>
+                        <li>Ignore responsive design principles</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/styling-template.js" asp-append-version="true"></script>
+} 
