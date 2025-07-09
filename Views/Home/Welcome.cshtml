@@ -1,0 +1,324 @@
+@{
+    ViewData["Title"] = "Welcome to ExcelRefinery";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styling-template.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, var(--federal-blue) 0%, var(--honolulu-blue) 50%, var(--pacific-cyan) 100%);
+            color: var(--white);
+            padding: 4rem 0;
+            margin-top: -1.5rem;
+            margin-bottom: 3rem;
+        }
+        
+        .hero-content {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .hero-description {
+            font-size: 1.125rem;
+            margin-bottom: 3rem;
+            opacity: 0.85;
+            line-height: 1.6;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            color: var(--pacific-cyan);
+            margin-bottom: 1rem;
+        }
+        
+        .stats-section {
+            background: var(--light-cyan);
+            padding: 3rem 0;
+            margin: 3rem 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--federal-blue);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        @@media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.25rem;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+}
+
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <i class="material-icons" style="font-size: 4rem; vertical-align: middle; margin-right: 1rem;">table_chart</i>
+                ExcelRefinery
+            </h1>
+            <p class="hero-subtitle">Professional Excel Data Processing & Analysis Platform</p>
+            <p class="hero-description">
+                Transform your refinery operational data with advanced validation, comparison, and analysis tools. 
+                Ensure data quality, detect inconsistencies, and generate comprehensive reports with ease.
+            </p>
+            <div class="cta-buttons">
+                <a asp-area="Identity" asp-page="/Account/Register" class="btn-excel btn-excel-secondary btn-excel-lg">
+                    <i class="material-icons">person_add</i>
+                    Get Started Free
+                </a>
+                <a asp-area="Identity" asp-page="/Account/Login" class="btn-excel btn-excel-outline btn-excel-lg" style="border-color: var(--white); color: var(--white);">
+                    <i class="material-icons">login</i>
+                    Sign In
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="container">
+    <div class="text-center mb-5">
+        <h2 style="color: var(--federal-blue); font-weight: 600; margin-bottom: 1rem;">
+            Powerful Features for Data Excellence
+        </h2>
+        <p class="lead" style="color: var(--text-secondary); max-width: 600px; margin: 0 auto;">
+            Everything you need to process, validate, and analyze your Excel data with professional-grade tools
+        </p>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card-excel text-center" style="height: 100%;">
+                <div class="card-excel-body">
+                    <i class="material-icons feature-icon">verified</i>
+                    <h4 style="color: var(--federal-blue); margin-bottom: 1rem;">Data Validation</h4>
+                    <p style="color: var(--text-secondary);">
+                        Real-time validation with comprehensive error reporting, data type checking, 
+                        and quality score metrics to ensure data integrity.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card-excel text-center" style="height: 100%;">
+                <div class="card-excel-body">
+                    <i class="material-icons feature-icon">compare</i>
+                    <h4 style="color: var(--federal-blue); margin-bottom: 1rem;">File Comparison</h4>
+                    <p style="color: var(--text-secondary);">
+                        Advanced file-to-file comparison with visual difference highlighting, 
+                        change tracking, and detailed comparison reports.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card-excel text-center" style="height: 100%;">
+                <div class="card-excel-body">
+                    <i class="material-icons feature-icon">content_copy</i>
+                    <h4 style="color: var(--federal-blue); margin-bottom: 1rem;">Duplicate Detection</h4>
+                    <p style="color: var(--text-secondary);">
+                        Smart duplicate identification with fuzzy matching capabilities 
+                        and user-controlled processing options.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card-excel text-center" style="height: 100%;">
+                <div class="card-excel-body">
+                    <i class="material-icons feature-icon">analytics</i>
+                    <h4 style="color: var(--federal-blue); margin-bottom: 1rem;">Advanced Analytics</h4>
+                    <p style="color: var(--text-secondary);">
+                        Generate insights and reports with trend analysis, equipment maintenance patterns, 
+                        and custom report generation capabilities.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card-excel text-center" style="height: 100%;">
+                <div class="card-excel-body">
+                    <i class="material-icons feature-icon">schedule</i>
+                    <h4 style="color: var(--federal-blue); margin-bottom: 1rem;">Date Processing</h4>
+                    <p style="color: var(--text-secondary);">
+                        Intelligent date standardization, validation, interval calculations, 
+                        and calendar integration with business day handling.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card-excel text-center" style="height: 100%;">
+                <div class="card-excel-body">
+                    <i class="material-icons feature-icon">cloud_upload</i>
+                    <h4 style="color: var(--federal-blue); margin-bottom: 1rem;">Multi-Format Support</h4>
+                    <p style="color: var(--text-secondary);">
+                        Support for XLSX, XLS, and CSV formats with batch processing, 
+                        multi-tab workbooks, and cross-tab validation.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Section -->
+<div class="stats-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-item">
+                    <div class="stat-number">99.9%</div>
+                    <div class="stat-label">Data Accuracy</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-item">
+                    <div class="stat-number">50x</div>
+                    <div class="stat-label">Faster Processing</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Availability</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-item">
+                    <div class="stat-number">100%</div>
+                    <div class="stat-label">Secure</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works Section -->
+<div class="container">
+    <div class="text-center mb-5">
+        <h2 style="color: var(--federal-blue); font-weight: 600; margin-bottom: 1rem;">
+            How ExcelRefinery Works
+        </h2>
+        <p class="lead" style="color: var(--text-secondary);">
+            Simple workflow for professional results
+        </p>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="text-center">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--pacific-cyan); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                    <span style="color: var(--white); font-size: 2rem; font-weight: 700;">1</span>
+                </div>
+                <h5 style="color: var(--federal-blue);">Upload Files</h5>
+                <p style="color: var(--text-secondary);">Upload your Excel files through our secure web interface</p>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="text-center">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--honolulu-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                    <span style="color: var(--white); font-size: 2rem; font-weight: 700;">2</span>
+                </div>
+                <h5 style="color: var(--federal-blue);">Process & Validate</h5>
+                <p style="color: var(--text-secondary);">Automatic validation and quality control processing</p>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="text-center">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--federal-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                    <span style="color: var(--white); font-size: 2rem; font-weight: 700;">3</span>
+                </div>
+                <h5 style="color: var(--federal-blue);">Review Results</h5>
+                <p style="color: var(--text-secondary);">Review validation reports and make necessary corrections</p>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="text-center">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--success-green); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                    <span style="color: var(--white); font-size: 2rem; font-weight: 700;">4</span>
+                </div>
+                <h5 style="color: var(--federal-blue);">Export & Analyze</h5>
+                <p style="color: var(--text-secondary);">Export clean data and generate comprehensive reports</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Call to Action Section -->
+<div class="container" style="margin: 4rem auto;">
+    <div class="text-center" style="padding: 3rem; background: var(--light-grey); border-radius: var(--border-radius-lg);">
+        <h2 style="color: var(--federal-blue); margin-bottom: 1rem;">Ready to Transform Your Data?</h2>
+        <p class="lead" style="color: var(--text-secondary); margin-bottom: 2rem;">
+            Join thousands of professionals who trust ExcelRefinery for their data processing needs
+        </p>
+        <div class="cta-buttons">
+            <a asp-area="Identity" asp-page="/Account/Register" class="btn-excel btn-excel-primary btn-excel-lg">
+                <i class="material-icons">rocket_launch</i>
+                Start Your Free Trial
+            </a>
+            <a href="#" class="btn-excel btn-excel-outline btn-excel-lg" onclick="alert('Contact form coming soon!')">
+                <i class="material-icons">contact_support</i>
+                Contact Sales
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/styling-template.js" asp-append-version="true"></script>
+} 

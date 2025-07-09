@@ -15,7 +15,15 @@ namespace ExcelRefinery.Controllers
 
         public IActionResult Index()
         {
-            return View();
+            // Check if user is authenticated
+            if (User.Identity.IsAuthenticated)
+            {
+                // Redirect authenticated users to dashboard
+                return View("Dashboard");
+            }
+            
+            // Show welcome/landing page for non-authenticated users
+            return View("Welcome");
         }
 
         public IActionResult Privacy()
