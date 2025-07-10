@@ -63,6 +63,17 @@ namespace ExcelRefinery.Services
                 comparison.HeaderMatches = headerMatches;
                 
                 var headerMapping = CreateOptimizedHeaderMapping(headerMatches);
+                
+                // If specific headers are requested, filter the mapping
+                if (worksheet1.SelectedHeaders.Any())
+                {
+                    headerMapping = headerMapping
+                        .Where(kvp => worksheet1.SelectedHeaders.Contains(kvp.Key))
+                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    
+                    _logger.LogInformation("Filtered comparison to {SelectedCount} selected headers.", headerMapping.Count);
+                }
+
                 comparison.HeadersMatch = headerMatches.Count >= Math.Min(worksheet1.Headers.Count, worksheet2.Headers.Count) * 0.8; // 80% of headers must match
                 
                 _logger.LogInformation("Header matching complete: {MatchCount} matches out of {TotalHeaders} headers", 
@@ -88,13 +99,14 @@ namespace ExcelRefinery.Services
                 }
 
                 // Step 3: Position-independent row comparison
-                var (matchingRows, rowComparisons) = await CompareRowsAdvancedAsync(worksheet1.Rows, worksheet2.Rows, headerMapping, matchThreshold);
+                var (matchingRows, rowComparisons) = CompareRowsAdvanced(worksheet1.Rows, worksheet2.Rows, headerMapping, matchThreshold);
                 
                 comparison.MatchingRows = matchingRows;
                 comparison.DifferentRows = comparison.TotalRows - matchingRows;
                 
-                // Step 4: Calculate similarity score
-                double similarityScore = worksheet1.Rows.Count > 0 ? (double)matchingRows / worksheet1.Rows.Count : 1.0;
+                // Step 4: Calculate similarity score based on the average similarity of all rows
+                double totalSimilarityScore = rowComparisons.Sum(r => r.SimilarityScore);
+                double similarityScore = (worksheet1.Rows.Count > 0) ? totalSimilarityScore / worksheet1.Rows.Count : 1.0;
                 comparison.SimilarityPercentage = similarityScore;
                 comparison.SimilarityLevel = DetermineSimilarityLevel(similarityScore);
                 comparison.Status = DetermineComparisonStatus(similarityScore);
@@ -211,7 +223,7 @@ namespace ExcelRefinery.Services
             };
         }
 
-        private async Task<(int matchingRows, List<RowComparisonResult>)> CompareRowsAdvancedAsync(
+        private (int matchingRows, List<RowComparisonResult>) CompareRowsAdvanced(
             List<Dictionary<string, string>> rows1, 
             List<Dictionary<string, string>> rows2, 
             Dictionary<string, string> headerMapping, 
@@ -512,6 +524,9 @@ namespace ExcelRefinery.Services
 
                     _logger.LogInformation("Comparing: {File1}[{WS1}] vs {File2}[{WS2}]", 
                         file1.FileName, worksheet1.Name, file2.FileName, worksheet2.Name);
+                    
+                    // Pass selected headers to the comparison
+                    worksheet1.SelectedHeaders = request.SelectedHeaders;
 
                     var comparisonResult = await CompareWorksheetsAsync(worksheet1, worksheet2, request.MatchThreshold);
 

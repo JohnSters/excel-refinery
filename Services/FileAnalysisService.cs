@@ -91,7 +91,7 @@ namespace ExcelRefinery.Services
                 _logger.LogError(ex, "Error analyzing file {FileName}", file.FileName);
                 
                 // Clean up temp file on error
-                await CleanupTempFileAsync(tempFilePath);
+                CleanupTempFile(tempFilePath);
                 
                 return new FileAnalysisResult
                 {
@@ -703,18 +703,19 @@ namespace ExcelRefinery.Services
             }
         }
 
-        private async Task CleanupTempFileAsync(string filePath)
+        private void CleanupTempFile(string filePath)
         {
             try
             {
                 if (File.Exists(filePath))
                 {
                     File.Delete(filePath);
+                    _logger.LogInformation("Cleaned up temporary file: {FilePath}", filePath);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to delete temp file {TempFilePath} after error", filePath);
+                _logger.LogWarning(ex, "Failed to clean up temporary file: {FilePath}", filePath);
             }
         }
     }

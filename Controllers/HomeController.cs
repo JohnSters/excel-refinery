@@ -20,7 +20,7 @@ namespace ExcelRefinery.Controllers
         public IActionResult Index()
         {
             // Check if user is authenticated
-            if (User.Identity.IsAuthenticated)
+            if (User.Identity?.IsAuthenticated == true)
             {
                 // Redirect authenticated users to dashboard
                 return View("Dashboard");
@@ -117,29 +117,6 @@ namespace ExcelRefinery.Controllers
             {
                 _logger.LogError(ex, "Error getting headers for file {FileId}, worksheet {WorksheetName}", fileId, worksheetName);
                 return Json(new { success = false, message = "Error loading worksheet headers." });
-            }
-        }
-
-        [HttpPost]
-        [Authorize]
-        public async Task<IActionResult> CheckFileIntegrity([FromBody] List<string> fileIds)
-        {
-            try
-            {
-                if (fileIds == null || fileIds.Count < 2)
-                {
-                    return Json(new { success = false, message = "Please select at least 2 files to check data integrity." });
-                }
-
-                var integrityResults = await _excelProcessingService.CheckFileIntegrityAsync(fileIds);
-                
-                _logger.LogInformation("File integrity check completed for {FileCount} files by user request", fileIds.Count);
-                return Json(new { success = true, results = integrityResults });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking file integrity");
-                return Json(new { success = false, message = "Error checking file integrity. Please try again." });
             }
         }
 

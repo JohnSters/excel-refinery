@@ -130,6 +130,7 @@ namespace ExcelRefinery.Models
         public string File2Id { get; set; } = string.Empty;
         public string File2WorksheetName { get; set; } = string.Empty;
         public double MatchThreshold { get; set; } = 0.90; // 90% threshold for row matching
+        public List<string> SelectedHeaders { get; set; } = new();
     }
 
     /// <summary>
@@ -196,6 +197,7 @@ namespace ExcelRefinery.Models
         public string DataHash { get; set; } = string.Empty;
         public int OriginalRowCount { get; set; } // Before filtering
         public int DataRowCount { get; set; } // After filtering out header/filter rows
+        public List<string> SelectedHeaders { get; set; } = new();
     }
 
     /// <summary>

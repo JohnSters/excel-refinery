@@ -53,7 +53,7 @@ namespace ExcelRefinery.Services
                 }
                 else if (fileExtension == ".xlsx" || fileExtension == ".xls")
                 {
-                    var excelData = await NormalizeExcelDataAsync(fullPath, fileAnalysis.Worksheets);
+                    var excelData = NormalizeExcelData(fullPath, fileAnalysis.Worksheets);
                     normalizedWorksheets.AddRange(excelData);
                 }
 
@@ -150,7 +150,7 @@ namespace ExcelRefinery.Services
             }
         }
 
-        private async Task<List<NormalizedWorksheetData>> NormalizeExcelDataAsync(string filePath, List<WorksheetInfo> worksheetInfos)
+        private List<NormalizedWorksheetData> NormalizeExcelData(string filePath, List<WorksheetInfo> worksheetInfos)
         {
             var normalizedWorksheets = new List<NormalizedWorksheetData>();
             

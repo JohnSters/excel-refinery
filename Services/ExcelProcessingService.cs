@@ -15,8 +15,7 @@ namespace ExcelRefinery.Services
         Task<FileAnalysisResult> AnalyzeFileAsync(IFormFile file);
         Task<DataPreviewResult> GetDataPreviewAsync(string filePath, string worksheetName, int maxRows = 10);
         Task<List<HeaderMapping>> DetectAndMapHeadersAsync(string filePath, string worksheetName);
-        Task<List<FileIntegrityResult>> CheckFileIntegrityAsync(List<string> fileIds);
-        Task<List<WorksheetIntegrityComparison>> CheckWorksheetIntegrityAsync(List<WorksheetComparisonRequest> requests);
+        Task<List<FileIntegrityResult>> CheckWorksheetIntegrityAsync(List<WorksheetComparisonRequest> requests);
         void CleanupOldTempFiles(int maxAgeHours = 24);
         void ClearProcessedFileCache();
     }
@@ -97,10 +96,12 @@ namespace ExcelRefinery.Services
             return await _fileAnalysisService.DetectAndMapHeadersAsync(filePath, worksheetName);
         }
 
-        public async Task<List<WorksheetIntegrityComparison>> CheckWorksheetIntegrityAsync(List<WorksheetComparisonRequest> requests)
+        public async Task<List<FileIntegrityResult>> CheckWorksheetIntegrityAsync(List<WorksheetComparisonRequest> requests)
         {
             _logger.LogInformation("=== Starting Worksheet-Specific Integrity Check ===");
             _logger.LogInformation("Processing {RequestCount} worksheet comparison requests", requests.Count);
+
+            var integrityResults = new List<FileIntegrityResult>();
 
             try
             {
@@ -117,77 +118,21 @@ namespace ExcelRefinery.Services
                         cachedFiles.Count, requestedFileIds.Count);
                 }
 
-                if (cachedFiles.Count < 2)
+                if (cachedFiles.Count < 2 && requests.Any())
                 {
                     _logger.LogWarning("Insufficient cached files for worksheet integrity check: {Count}", cachedFiles.Count);
-                    return new List<WorksheetIntegrityComparison>();
+                    return integrityResults;
                 }
 
                 // Use the specialized comparison service for worksheet-level comparisons
-                var comparisons = await _worksheetComparisonService.CompareWorksheetsBetweenFilesAsync(cachedFiles, requests);
+                var worksheetComparisons = await _worksheetComparisonService.CompareWorksheetsBetweenFilesAsync(cachedFiles, requests);
 
                 _logger.LogInformation("Worksheet integrity check complete: {ComparisonCount} comparisons performed", 
-                    comparisons.Count);
-
-                return comparisons;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during worksheet integrity check");
-                return new List<WorksheetIntegrityComparison>();
-            }
-        }
-
-        public async Task<List<FileIntegrityResult>> CheckFileIntegrityAsync(List<string> fileIds)
-        {
-            _logger.LogInformation("=== Starting File-Level Integrity Check ===");
-            _logger.LogInformation("Checking integrity for file IDs: [{FileIds}]", string.Join(", ", fileIds));
-
-            var integrityResults = new List<FileIntegrityResult>();
-            
-            try
-            {
-                if (fileIds.Count < 2)
-                {
-                    _logger.LogWarning("File integrity check requires at least 2 files, received: {Count}", fileIds.Count);
-                    return integrityResults;
-                }
-
-                List<ProcessedFileCache> cachedFiles;
+                    worksheetComparisons.Count);
                 
-                lock (_cacheLock)
-                {
-                    cachedFiles = _processedFilesCache.Values
-                        .Where(f => fileIds.Contains(f.FileId))
-                        .ToList();
-                        
-                    _logger.LogInformation("Found {FoundCount} cached files out of {RequestedCount} requested", 
-                        cachedFiles.Count, fileIds.Count);
-                }
-
-                if (cachedFiles.Count < 2)
-                {
-                    _logger.LogWarning("Insufficient cached files for integrity check: {Count}", cachedFiles.Count);
-                    return integrityResults;
-                }
-
-                // Generate comparison requests for all worksheet combinations
-                var comparisonRequests = GenerateWorksheetComparisonRequests(cachedFiles);
-                
-                _logger.LogInformation("Generated {RequestCount} worksheet comparison requests", comparisonRequests.Count);
-
-                if (!comparisonRequests.Any())
-                {
-                    _logger.LogWarning("No worksheet comparison requests generated");
-                    return integrityResults;
-                }
-
-                // Perform worksheet-level comparisons
-                var worksheetComparisons = await _worksheetComparisonService.CompareWorksheetsBetweenFilesAsync(cachedFiles, comparisonRequests);
-
                 // Group results by source file for file-level integrity results
                 var groupedComparisons = worksheetComparisons
-                    .GroupBy(c => cachedFiles.First(f => f.Worksheets.Any(w => w.Name == c.SourceWorksheetName)).FileId)
+                    .GroupBy(c => requests.First(r => r.File1WorksheetName == c.SourceWorksheetName && r.File2Id == c.ComparedWithFileId).File1Id)
                     .ToList();
 
                 foreach (var fileGroup in groupedComparisons)
@@ -210,90 +155,18 @@ namespace ExcelRefinery.Services
                         sourceFile.FileName, integrityResult.OverallStatus, integrityResult.WorksheetComparisons.Count);
                 }
 
-                _logger.LogInformation("File-level integrity check complete: {ResultCount} files analyzed", 
-                    integrityResults.Count);
-
                 return integrityResults;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during file integrity check");
+                _logger.LogError(ex, "Error during worksheet integrity check");
                 return integrityResults;
             }
-        }
-
-        private List<WorksheetComparisonRequest> GenerateWorksheetComparisonRequests(List<ProcessedFileCache> files)
-        {
-            var requests = new List<WorksheetComparisonRequest>();
-            
-            try
-            {
-                // Compare each file with every other file
-                for (int i = 0; i < files.Count; i++)
-                {
-                    for (int j = i + 1; j < files.Count; j++)
-                    {
-                        var file1 = files[i];
-                        var file2 = files[j];
-                        
-                        // Try to match worksheets by name similarity
-                        foreach (var worksheet1 in file1.Worksheets)
-                        {
-                            // Look for similar worksheet names in file2
-                            var matchingWorksheet = file2.Worksheets
-                                .OrderByDescending(w => CalculateNameSimilarity(worksheet1.Name, w.Name))
-                                .FirstOrDefault();
-                            
-                            if (matchingWorksheet != null)
-                            {
-                                requests.Add(new WorksheetComparisonRequest
-                                {
-                                    File1Id = file1.FileId,
-                                    File1WorksheetName = worksheet1.Name,
-                                    File2Id = file2.FileId,
-                                    File2WorksheetName = matchingWorksheet.Name,
-                                    MatchThreshold = 0.90 // 90% threshold for row matching
-                                });
-                                
-                                _logger.LogDebug("Generated comparison request: {File1}[{WS1}] vs {File2}[{WS2}]", 
-                                    file1.FileName, worksheet1.Name, file2.FileName, matchingWorksheet.Name);
-                            }
-                        }
-                    }
-                }
-                
-                _logger.LogInformation("Generated {RequestCount} worksheet comparison requests from {FileCount} files", 
-                    requests.Count, files.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error generating worksheet comparison requests");
-            }
-            
-            return requests;
-        }
-
-        private double CalculateNameSimilarity(string name1, string name2)
-        {
-            if (string.Equals(name1, name2, StringComparison.OrdinalIgnoreCase))
-                return 1.0;
-                
-            // Simple similarity based on common words and length
-            var words1 = name1.ToLowerInvariant().Split('_', ' ', '-').Where(w => !string.IsNullOrEmpty(w)).ToHashSet();
-            var words2 = name2.ToLowerInvariant().Split('_', ' ', '-').Where(w => !string.IsNullOrEmpty(w)).ToHashSet();
-            
-            if (!words1.Any() || !words2.Any())
-                return 0.0;
-            
-            var intersection = words1.Intersect(words2).Count();
-            var union = words1.Union(words2).Count();
-            
-            return union > 0 ? (double)intersection / union : 0.0;
         }
 
         private void SetFileIntegrityStatus(FileIntegrityResult result)
         {
-            if (!result.WorksheetComparisons.Any())
+            if (result.WorksheetComparisons.Count == 0)
             {
                 result.OverallStatus = "no_comparison";
                 result.Status = ComparisonStatus.Error;

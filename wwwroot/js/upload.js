@@ -722,12 +722,18 @@
                     const selectedWorksheet2 = file2.worksheets.find(ws => ws.selected);
                     
                     if (selectedWorksheet1 && selectedWorksheet2) {
+                        // Get selected headers for the first file
+                        const selectedHeaders1 = file1.headers
+                            .filter(h => h.selected)
+                            .map(h => h.name);
+
                         comparisonRequests.push({
                             file1Id: file1.id,
                             file1WorksheetName: selectedWorksheet1.name,
                             file2Id: file2.id,
                             file2WorksheetName: selectedWorksheet2.name,
-                            matchThreshold: 0.90 // 90% threshold for row matching
+                            matchThreshold: 0.90, // 90% threshold for row matching
+                            selectedHeaders: selectedHeaders1
                         });
                     }
                 }
@@ -761,7 +767,7 @@
                 
                 if (data.success) {
                     // Convert worksheet comparisons to file-level results for display
-                    const fileResults = convertWorksheetComparisonsToFileResults(data.results, filesWithSelections);
+                    const fileResults = data.results;
                     showIntegrityResults(fileResults);
                     if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
                         window.StylingTemplate.showDemoAlert('success', 'Worksheet integrity check completed!');
@@ -782,61 +788,6 @@
             });
         } catch (error) {
             console.error('Error in checkFileIntegrity:', error);
-        }
-    };
-
-    const convertWorksheetComparisonsToFileResults = function(worksheetComparisons, files) {
-        try {
-            // Group comparisons by source file
-            const fileGroups = new Map();
-            
-            worksheetComparisons.forEach(comparison => {
-                // Find the source file by looking for the worksheet name
-                const sourceFile = files.find(file => 
-                    file.worksheets.some(ws => ws.name === comparison.sourceWorksheetName)
-                );
-                
-                if (sourceFile) {
-                    if (!fileGroups.has(sourceFile.id)) {
-                        fileGroups.set(sourceFile.id, {
-                            fileId: sourceFile.id,
-                            fileName: sourceFile.name,
-                            worksheetComparisons: [],
-                            overallStatus: 'no_comparison'
-                        });
-                    }
-                    
-                    fileGroups.get(sourceFile.id).worksheetComparisons.push(comparison);
-                }
-            });
-            
-            // Determine overall status for each file
-            const results = Array.from(fileGroups.values()).map(fileGroup => {
-                const comparisons = fileGroup.worksheetComparisons;
-                const successCount = comparisons.filter(c => c.status === 0).length; // Success = 0
-                const warningCount = comparisons.filter(c => c.status === 1).length; // Warning = 1
-                const errorCount = comparisons.filter(c => c.status === 2).length;   // Error = 2
-                
-                // Determine overall status
-                if (successCount === comparisons.length) {
-                    // All comparisons successful
-                    const hasExactMatches = comparisons.some(c => c.similarityScore >= 1.0);
-                    fileGroup.overallStatus = hasExactMatches ? 'excellent_match' : 'good_match';
-                } else if (successCount > 0) {
-                    // Some good matches, some issues
-                    fileGroup.overallStatus = 'has_differences';
-                } else {
-                    // No good matches
-                    fileGroup.overallStatus = 'poor_match';
-                }
-                
-                return fileGroup;
-            });
-            
-            return results;
-        } catch (error) {
-            console.error('Error converting worksheet comparisons to file results:', error);
-            return [];
         }
     };
 
