@@ -1,6 +1,12 @@
-using ClosedXML.Excel;
+/**
+ * ExcelProcessingService.cs
+ * Main orchestration service for Excel file processing and integrity checking
+ * Uses specialized services for analysis, normalization, and comparison
+ * Author: ExcelRefinery System
+ */
+
 using ExcelRefinery.Models;
-using System.Text.RegularExpressions;
+using System.Collections.Concurrent;
 
 namespace ExcelRefinery.Services
 {
@@ -9,702 +15,392 @@ namespace ExcelRefinery.Services
         Task<FileAnalysisResult> AnalyzeFileAsync(IFormFile file);
         Task<DataPreviewResult> GetDataPreviewAsync(string filePath, string worksheetName, int maxRows = 10);
         Task<List<HeaderMapping>> DetectAndMapHeadersAsync(string filePath, string worksheetName);
+        Task<List<FileIntegrityResult>> CheckFileIntegrityAsync(List<string> fileIds);
+        Task<List<WorksheetIntegrityComparison>> CheckWorksheetIntegrityAsync(List<WorksheetComparisonRequest> requests);
         void CleanupOldTempFiles(int maxAgeHours = 24);
+        void ClearProcessedFileCache();
     }
 
     public class ExcelProcessingService : IExcelProcessingService
     {
         private readonly ILogger<ExcelProcessingService> _logger;
-        private readonly string _tempFilePath;
+        private readonly IFileAnalysisService _fileAnalysisService;
+        private readonly IDataNormalizationService _dataNormalizationService;
+        private readonly IWorksheetComparisonService _worksheetComparisonService;
+        
+        // In-memory cache for processed files to detect duplicates and enable comparisons
+        private static readonly ConcurrentDictionary<string, ProcessedFileCache> _processedFilesCache = new();
+        private static readonly object _cacheLock = new object();
 
-        public ExcelProcessingService(ILogger<ExcelProcessingService> logger, IWebHostEnvironment environment)
+        public ExcelProcessingService(
+            ILogger<ExcelProcessingService> logger,
+            IFileAnalysisService fileAnalysisService,
+            IDataNormalizationService dataNormalizationService,
+            IWorksheetComparisonService worksheetComparisonService)
         {
             _logger = logger;
-            _tempFilePath = Path.Combine(environment.WebRootPath, "temp");
-            
-            // Ensure temp directory exists
-            if (!Directory.Exists(_tempFilePath))
-                Directory.CreateDirectory(_tempFilePath);
+            _fileAnalysisService = fileAnalysisService;
+            _dataNormalizationService = dataNormalizationService;
+            _worksheetComparisonService = worksheetComparisonService;
         }
 
         public async Task<FileAnalysisResult> AnalyzeFileAsync(IFormFile file)
         {
-            var fileId = Guid.NewGuid().ToString();
-            // Sanitize filename to prevent path traversal
-            var sanitizedFileName = Path.GetFileName(file.FileName);
-            var tempFileName = $"{fileId}_{sanitizedFileName}";
-            var tempFilePath = Path.Combine(_tempFilePath, tempFileName);
-
             try
             {
-                // Save uploaded file temporarily
-                using (var stream = new FileStream(tempFilePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
+                _logger.LogInformation("=== Starting File Analysis Orchestration ===");
+                _logger.LogInformation("Processing file: {FileName} ({FileSize} bytes)", file.FileName, file.Length);
 
-                var result = new FileAnalysisResult
-                {
-                    FileId = fileId,
-                    FileName = file.FileName,
-                    FileSize = file.Length,
-                    FileType = file.ContentType,
-                    LastModified = DateTime.Now
-                };
-
-                // Determine file type and process accordingly
-                var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                // Step 1: Analyze the file structure and content
+                var analysisResult = await _fileAnalysisService.AnalyzeFileAsync(file);
                 
-                if (fileExtension == ".csv")
+                if (analysisResult.Status == "error")
                 {
-                    await ProcessCsvFileAsync(tempFilePath, result);
-                }
-                else if (fileExtension == ".xlsx" || fileExtension == ".xls")
-                {
-                    await ProcessExcelFileAsync(tempFilePath, result);
-                }
-                else
-                {
-                    result.ValidationErrors.Add("Unsupported file format. Please upload .xlsx, .xls, or .csv files.");
-                    result.Status = "error";
+                    _logger.LogError("File analysis failed for {FileName}: {Errors}", 
+                        file.FileName, string.Join(", ", analysisResult.ValidationErrors));
+                    return analysisResult;
                 }
 
-                // Calculate quality score
-                result.QualityScore = CalculateQualityScore(result);
+                // Step 2: Normalize the data for comparison purposes (only if successful)
+                var tempFileName = $"{analysisResult.FileId}_{Path.GetFileName(file.FileName)}";
+                await CacheNormalizedFileDataAsync(tempFileName, analysisResult);
 
-                return result;
+                _logger.LogInformation("File analysis orchestration complete for {FileName}: {WorksheetCount} worksheets processed", 
+                    file.FileName, analysisResult.Worksheets.Count);
+
+                return analysisResult;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error analyzing file {FileName}", file.FileName);
-                
-                // Clean up temp file on error
-                try
-                {
-                    if (File.Exists(tempFilePath))
-                    {
-                        File.Delete(tempFilePath);
-                    }
-                }
-                catch (Exception deleteEx)
-                {
-                    _logger.LogWarning(deleteEx, "Failed to delete temp file {TempFilePath} after error", tempFilePath);
-                }
+                _logger.LogError(ex, "Error in file analysis orchestration for {FileName}", file.FileName);
                 
                 return new FileAnalysisResult
                 {
-                    FileId = fileId,
+                    FileId = Guid.NewGuid().ToString(),
                     FileName = file.FileName,
                     FileSize = file.Length,
                     FileType = file.ContentType,
                     LastModified = DateTime.Now,
                     Status = "error",
-                    ValidationErrors = new List<string> { $"Error processing file: {ex.Message}" }
+                    ValidationErrors = new List<string> { $"Orchestration error: {ex.Message}" }
                 };
             }
-        }
-
-        private Task ProcessExcelFileAsync(string filePath, FileAnalysisResult result)
-        {
-            return Task.Run(() =>
-            {
-                try
-                {
-                    using var workbook = new XLWorkbook(filePath);
-                    
-                    _logger.LogInformation("Processing Excel file with {WorksheetCount} worksheets", workbook.Worksheets.Count);
-                    
-                                    var skippedWorksheets = new List<string>();
-                
-                foreach (var worksheet in workbook.Worksheets)
-                {
-                    var worksheetInfo = AnalyzeWorksheet(worksheet, result.FileId);
-                    
-                    if (worksheetInfo != null)
-                    {
-                        result.Worksheets.Add(worksheetInfo);
-                        
-                        _logger.LogInformation("Analyzed worksheet '{WorksheetName}' with {RowCount} rows and {ColumnCount} columns", 
-                            worksheetInfo.Name, worksheetInfo.RowCount, worksheetInfo.ColumnCount);
-                    }
-                    else
-                    {
-                        skippedWorksheets.Add(worksheet.Name);
-                        _logger.LogWarning("Skipped worksheet '{WorksheetName}' - no data found after headers", worksheet.Name);
-                    }
-                }
-                
-                // Add warnings for skipped worksheets
-                if (skippedWorksheets.Any())
-                {
-                    result.ValidationWarnings.Add($"Skipped {skippedWorksheets.Count} worksheet(s) with no data: {string.Join(", ", skippedWorksheets)}");
-                }
-
-                    // If we have worksheets, select the first one by default and get its headers
-                    if (result.Worksheets.Any())
-                    {
-                        result.Worksheets.First().Selected = true;
-                        var selectedWorksheet = workbook.Worksheets.First();
-                        result.Headers = GetWorksheetHeaders(selectedWorksheet);
-                        
-                        _logger.LogInformation("Selected first worksheet '{WorksheetName}' with {HeaderCount} headers", 
-                            selectedWorksheet.Name, result.Headers.Count);
-                    }
-
-                    if (!result.Worksheets.Any())
-                    {
-                        result.ValidationErrors.Add("No valid worksheets found in the Excel file.");
-                        _logger.LogWarning("No worksheets found in Excel file {FilePath}", filePath);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error processing Excel file {FilePath}", filePath);
-                    result.ValidationErrors.Add($"Error reading Excel file: {ex.Message}");
-                    result.Status = "error";
-                }
-            });
-        }
-
-        private async Task ProcessCsvFileAsync(string filePath, FileAnalysisResult result)
-        {
-            try
-            {
-                var lines = await File.ReadAllLinesAsync(filePath);
-                if (lines.Length == 0)
-                {
-                    result.ValidationErrors.Add("CSV file is empty.");
-                    return;
-                }
-
-                var worksheetInfo = new WorksheetInfo
-                {
-                    Id = "csv_main",
-                    Name = "CSV Data",
-                    RowCount = lines.Length, // Total rows including header
-                    HasHeaders = true,
-                    Selected = true
-                };
-
-                // Parse headers from first line
-                var headerLine = lines[0];
-                var headers = headerLine.Split(',').Select(h => h.Trim('"', ' ')).ToList();
-                worksheetInfo.DetectedHeaders = headers;
-                worksheetInfo.ColumnCount = headers.Count;
-
-                // Get first data row preview
-                if (lines.Length > 1)
-                {
-                    var previewValues = lines[1].Split(',').Select(cell => cell.Trim('"', ' ')).Take(5);
-                    worksheetInfo.FirstDataRowPreview = string.Join(" | ", previewValues);
-                }
-
-                result.Worksheets.Add(worksheetInfo);
-                result.Headers = MapCsvHeaders(headers);
-
-                _logger.LogInformation("Successfully processed CSV file with {WorksheetCount} worksheet(s) and {HeaderCount} headers", 
-                    result.Worksheets.Count, result.Headers.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing CSV file {FilePath}", filePath);
-                result.ValidationErrors.Add($"Error reading CSV file: {ex.Message}");
-                result.Status = "error";
-            }
-        }
-
-        private WorksheetInfo? AnalyzeWorksheet(IXLWorksheet worksheet, string fileId)
-        {
-            var worksheetInfo = new WorksheetInfo
-            {
-                Id = $"{fileId}_{worksheet.Name}",
-                Name = worksheet.Name,
-                HasHeaders = true // Assume first row is always headers as per user requirement
-            };
-
-            try
-            {
-                // Get used range
-                var usedRange = worksheet.RangeUsed();
-                if (usedRange == null)
-                {
-                    worksheetInfo.RowCount = 0;
-                    worksheetInfo.ColumnCount = 0;
-                    return worksheetInfo;
-                }
-
-                worksheetInfo.RowCount = usedRange.RowCount();
-                
-                // Check if there's actual data after headers (row 3 and beyond, since row 2 may contain filters)
-                bool hasDataAfterHeaders = false;
-                if (worksheetInfo.RowCount > 2)
-                {
-                    // Check row 3 for any non-empty data (skip row 2 which often contains filters)
-                    for (int col = 1; col <= usedRange.ColumnCount(); col++)
-                    {
-                        var cellValue = worksheet.Cell(3, col).GetString().Trim();
-                        if (!string.IsNullOrEmpty(cellValue) && !IsLikelyFilterValue(cellValue))
-                        {
-                            hasDataAfterHeaders = true;
-                            break;
-                        }
-                    }
-                }
-
-                // If no data found after headers and filters, mark this worksheet as having issues
-                if (!hasDataAfterHeaders && worksheetInfo.RowCount > 2)
-                {
-                    _logger.LogWarning("Worksheet '{WorksheetName}' has headers but no actual data in row 3+", worksheet.Name);
-                    // Don't return this worksheet - it will be filtered out
-                    return null;
-                }
-
-                // Only count columns that have data (not just empty columns)
-                var columnsWithData = GetColumnsWithData(worksheet, usedRange);
-                worksheetInfo.ColumnCount = columnsWithData.Count;
-
-                // Extract headers only from columns that have data
-                if (worksheetInfo.RowCount > 0)
-                {
-                    foreach (var col in columnsWithData)
-                    {
-                        var cellValue = worksheet.Cell(1, col).GetString().Trim();
-                        worksheetInfo.DetectedHeaders.Add(!string.IsNullOrEmpty(cellValue) ? cellValue : $"Column_{col}");
-                    }
-                }
-
-                // Get first data row preview (row 3 since row 1 is headers and row 2 often contains filters)
-                if (worksheetInfo.RowCount > 2 && hasDataAfterHeaders)
-                {
-                    var previewValues = new List<string>();
-                    
-                    foreach (var col in columnsWithData.Take(5))
-                    {
-                        var cellValue = worksheet.Cell(3, col).GetString().Trim();
-                        previewValues.Add(string.IsNullOrEmpty(cellValue) ? "[empty]" : cellValue);
-                    }
-                    
-                    worksheetInfo.FirstDataRowPreview = string.Join(" | ", previewValues);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error analyzing worksheet {WorksheetName}", worksheet.Name);
-            }
-
-            return worksheetInfo;
-        }
-
-        private List<int> GetColumnsWithData(IXLWorksheet worksheet, IXLRange usedRange)
-        {
-            var columnsWithData = new List<int>();
-            
-            try
-            {
-                for (int col = 1; col <= usedRange.ColumnCount(); col++)
-                {
-                    bool hasData = false;
-                    
-                    // Check if this column has any data from row 3 onwards (skip header row 1 and filter row 2)
-                    for (int row = 3; row <= usedRange.RowCount(); row++)
-                    {
-                        var cellValue = worksheet.Cell(row, col).GetString().Trim();
-                        if (!string.IsNullOrEmpty(cellValue) && !IsLikelyFilterValue(cellValue))
-                        {
-                            hasData = true;
-                            break;
-                        }
-                    }
-                    
-                    // Also check if the header itself has content (don't skip columns with headers but no data yet)
-                    if (!hasData)
-                    {
-                        var headerValue = worksheet.Cell(1, col).GetString().Trim();
-                        if (!string.IsNullOrEmpty(headerValue))
-                        {
-                            // Include columns with headers even if no data yet, but log it
-                            hasData = true;
-                            _logger.LogDebug("Column {Column} has header '{Header}' but no data", col, headerValue);
-                        }
-                    }
-                    
-                    if (hasData)
-                    {
-                        columnsWithData.Add(col);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting columns with data for worksheet {WorksheetName}", worksheet.Name);
-                // Fallback: return all columns
-                for (int col = 1; col <= usedRange.ColumnCount(); col++)
-                {
-                    columnsWithData.Add(col);
-                }
-            }
-            
-            return columnsWithData;
-        }
-
-        private List<HeaderMapping> GetWorksheetHeaders(IXLWorksheet worksheet)
-        {
-            var headers = new List<HeaderMapping>();
-            
-            try
-            {
-                var usedRange = worksheet.RangeUsed();
-                if (usedRange == null || usedRange.RowCount() == 0)
-                {
-                    return headers;
-                }
-
-                // Get only columns that have data
-                var columnsWithData = GetColumnsWithData(worksheet, usedRange);
-                
-                // Read headers only from columns that have data
-                foreach (var col in columnsWithData)
-                {
-                    var headerValue = worksheet.Cell(1, col).GetString().Trim();
-                    var displayName = !string.IsNullOrEmpty(headerValue) ? headerValue : $"Column_{col}";
-                    
-                    // Get sample data starting from row 3 (row 2 often contains filters)
-                    var sampleValues = new List<string>();
-                    int samplesFound = 0;
-                    
-                    // Start from row 3 to skip headers (row 1) and filters (row 2)
-                    for (int row = 3; row <= usedRange.RowCount() && samplesFound < 3; row++)
-                    {
-                        var cellValue = worksheet.Cell(row, col).GetString().Trim();
-                        
-                        // Skip cells that look like filter dropdowns or empty cells
-                        if (!string.IsNullOrEmpty(cellValue) && !IsLikelyFilterValue(cellValue))
-                        {
-                            sampleValues.Add(cellValue);
-                            samplesFound++;
-                        }
-                    }
-
-                    var header = new HeaderMapping
-                    {
-                        Id = $"header_{col}",
-                        DetectedName = displayName,
-                        StandardName = displayName, // Keep the same name since we're not doing matching
-                        DataType = DetermineDataType(sampleValues),
-                        Selected = true, // Select all headers by default
-                        IsRequired = false, // No predefined required fields
-                        MatchConfidence = 1.0, // 100% since we're reading directly
-                        Column = GetColumnLetter(col),
-                        SampleData = string.Join(", ", sampleValues.Take(3))
-                    };
-
-                    headers.Add(header);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting worksheet headers for {WorksheetName}", worksheet.Name);
-            }
-
-            return headers;
-        }
-
-        private bool IsLikelyFilterValue(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return true;
-                
-            // Common filter dropdown indicators
-            var filterIndicators = new[]
-            {
-                "(All)",
-                "(Select All)",
-                "(Multiple Items)",
-                "Select...",
-                "Choose...",
-                "Filter...",
-                "---",
-                "...",
-                "All"
-            };
-            
-            // Check if the value matches common filter patterns
-            foreach (var indicator in filterIndicators)
-            {
-                if (value.Equals(indicator, StringComparison.OrdinalIgnoreCase))
-                    return true;
-            }
-            
-            // Check if value is very generic (single letters, numbers, or short generic words)
-            if (value.Length == 1 || (value.Length <= 3 && Regex.IsMatch(value, @"^[A-Za-z0-9]+$")))
-                return true;
-                
-            return false;
-        }
-
-        private string DetermineDataType(List<string> sampleValues)
-        {
-            if (!sampleValues.Any()) return "Text";
-
-            var dateCount = 0;
-            var numberCount = 0;
-            var boolCount = 0;
-
-            foreach (var value in sampleValues)
-            {
-                if (DateTime.TryParse(value, out _))
-                    dateCount++;
-                else if (double.TryParse(value, out _))
-                    numberCount++;
-                else if (bool.TryParse(value, out _))
-                    boolCount++;
-            }
-
-            var total = sampleValues.Count;
-            if (dateCount > total * 0.6) return "Date";
-            if (numberCount > total * 0.6) return "Numeric";
-            if (boolCount > total * 0.6) return "Boolean";
-            
-            return "Text";
         }
 
         public async Task<DataPreviewResult> GetDataPreviewAsync(string filePath, string worksheetName, int maxRows = 10)
         {
-            var result = new DataPreviewResult
-            {
-                WorksheetId = worksheetName
-            };
-
-            try
-            {
-                var fullPath = Path.Combine(_tempFilePath, filePath);
-                
-                if (Path.GetExtension(filePath).ToLowerInvariant() == ".csv")
-                {
-                    return await GetCsvPreviewAsync(fullPath, maxRows);
-                }
-
-                using var workbook = new XLWorkbook(fullPath);
-                var worksheet = workbook.Worksheets.FirstOrDefault(w => w.Name == worksheetName);
-                
-                if (worksheet == null)
-                {
-                    return result;
-                }
-
-                var usedRange = worksheet.RangeUsed();
-                if (usedRange == null)
-                {
-                    return result;
-                }
-
-                result.TotalRows = Math.Max(0, usedRange.RowCount() - 2); // Exclude header and filter rows
-                
-                // Extract headers
-                var headerRow = worksheet.Row(1);
-                foreach (var cell in headerRow.CellsUsed())
-                {
-                    result.Headers.Add(cell.GetString().Trim());
-                }
-
-                // Extract data rows starting from row 3 (skip header row 1 and filter row 2)
-                var startRow = 3; // Skip header and filter rows
-                var endRow = Math.Min(startRow + maxRows - 1, result.TotalRows);
-                
-                for (int rowIndex = startRow; rowIndex <= endRow; rowIndex++)
-                {
-                    var row = worksheet.Row(rowIndex);
-                    var rowData = new List<string>();
-                    
-                    for (int colIndex = 1; colIndex <= result.Headers.Count; colIndex++)
-                    {
-                        var cellValue = worksheet.Cell(rowIndex, colIndex).GetString().Trim();
-                        rowData.Add(cellValue);
-                    }
-                    
-                    result.Rows.Add(rowData);
-                }
-
-                result.HasMoreData = result.TotalRows > maxRows + 2; // +2 for header and filter rows
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting data preview for {FilePath}, worksheet {WorksheetName}", filePath, worksheetName);
-            }
-
-            return result;
-        }
-
-        private async Task<DataPreviewResult> GetCsvPreviewAsync(string filePath, int maxRows)
-        {
-            var result = new DataPreviewResult
-            {
-                WorksheetId = "csv_main"
-            };
-
-            try
-            {
-                var lines = await File.ReadAllLinesAsync(filePath);
-                result.TotalRows = lines.Length - 1; // Excluding header
-
-                if (lines.Length > 0)
-                {
-                    // Parse headers
-                    var headerLine = lines[0];
-                    result.Headers = headerLine.Split(',').Select(h => h.Trim('"', ' ')).ToList();
-
-                    // Parse data rows
-                    var dataLines = lines.Skip(1).Take(maxRows);
-                    foreach (var line in dataLines)
-                    {
-                        var rowData = line.Split(',').Select(cell => cell.Trim('"', ' ')).ToList();
-                        result.Rows.Add(rowData);
-                    }
-
-                    result.HasMoreData = lines.Length > maxRows + 1;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting CSV preview for {FilePath}", filePath);
-            }
-
-            return result;
+            return await _fileAnalysisService.GetDataPreviewAsync(filePath, worksheetName, maxRows);
         }
 
         public async Task<List<HeaderMapping>> DetectAndMapHeadersAsync(string filePath, string worksheetName)
         {
+            return await _fileAnalysisService.DetectAndMapHeadersAsync(filePath, worksheetName);
+        }
+
+        public async Task<List<WorksheetIntegrityComparison>> CheckWorksheetIntegrityAsync(List<WorksheetComparisonRequest> requests)
+        {
+            _logger.LogInformation("=== Starting Worksheet-Specific Integrity Check ===");
+            _logger.LogInformation("Processing {RequestCount} worksheet comparison requests", requests.Count);
+
             try
             {
-                var fullPath = Path.Combine(_tempFilePath, filePath);
+                List<ProcessedFileCache> cachedFiles;
                 
-                if (Path.GetExtension(filePath).ToLowerInvariant() == ".csv")
+                lock (_cacheLock)
                 {
-                    var lines = await File.ReadAllLinesAsync(fullPath);
-                    if (lines.Length > 0)
-                    {
-                        var headers = lines[0].Split(',').Select(h => h.Trim('"', ' ')).ToList();
-                        return MapCsvHeaders(headers);
-                    }
-                    return new List<HeaderMapping>();
+                    var requestedFileIds = requests.SelectMany(r => new[] { r.File1Id, r.File2Id }).Distinct().ToList();
+                    cachedFiles = _processedFilesCache.Values
+                        .Where(f => requestedFileIds.Contains(f.FileId))
+                        .ToList();
+                        
+                    _logger.LogInformation("Found {CachedCount} cached files for {RequestedCount} unique file IDs", 
+                        cachedFiles.Count, requestedFileIds.Count);
                 }
 
-                using var workbook = new XLWorkbook(fullPath);
-                var worksheet = workbook.Worksheets.FirstOrDefault(w => w.Name == worksheetName);
-                
-                if (worksheet == null)
+                if (cachedFiles.Count < 2)
                 {
-                    return new List<HeaderMapping>();
+                    _logger.LogWarning("Insufficient cached files for worksheet integrity check: {Count}", cachedFiles.Count);
+                    return new List<WorksheetIntegrityComparison>();
                 }
 
-                return GetWorksheetHeaders(worksheet);
+                // Use the specialized comparison service for worksheet-level comparisons
+                var comparisons = await _worksheetComparisonService.CompareWorksheetsBetweenFilesAsync(cachedFiles, requests);
+
+                _logger.LogInformation("Worksheet integrity check complete: {ComparisonCount} comparisons performed", 
+                    comparisons.Count);
+
+                return comparisons;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error detecting headers for {FilePath}, worksheet {WorksheetName}", filePath, worksheetName);
-                return new List<HeaderMapping>();
+                _logger.LogError(ex, "Error during worksheet integrity check");
+                return new List<WorksheetIntegrityComparison>();
             }
         }
 
-
-
-        private List<HeaderMapping> MapCsvHeaders(List<string> headers)
+        public async Task<List<FileIntegrityResult>> CheckFileIntegrityAsync(List<string> fileIds)
         {
-            var headerMappings = new List<HeaderMapping>();
+            _logger.LogInformation("=== Starting File-Level Integrity Check ===");
+            _logger.LogInformation("Checking integrity for file IDs: [{FileIds}]", string.Join(", ", fileIds));
+
+            var integrityResults = new List<FileIntegrityResult>();
             
-            for (int i = 0; i < headers.Count; i++)
+            try
             {
-                var detectedHeader = headers[i];
-                var displayName = !string.IsNullOrEmpty(detectedHeader) ? detectedHeader : $"Column_{i + 1}";
-                
-                var mapping = new HeaderMapping
+                if (fileIds.Count < 2)
                 {
-                    Id = $"header_{i + 1}",
-                    DetectedName = displayName,
-                    StandardName = displayName,
-                    DataType = "Text", // Default for CSV, could be enhanced with sample data analysis
-                    Selected = true,
-                    IsRequired = false,
-                    MatchConfidence = 1.0,
-                    Column = GetColumnLetter(i + 1),
-                    SampleData = "" // Could be enhanced to read sample data
+                    _logger.LogWarning("File integrity check requires at least 2 files, received: {Count}", fileIds.Count);
+                    return integrityResults;
+                }
+
+                List<ProcessedFileCache> cachedFiles;
+                
+                lock (_cacheLock)
+                {
+                    cachedFiles = _processedFilesCache.Values
+                        .Where(f => fileIds.Contains(f.FileId))
+                        .ToList();
+                        
+                    _logger.LogInformation("Found {FoundCount} cached files out of {RequestedCount} requested", 
+                        cachedFiles.Count, fileIds.Count);
+                }
+
+                if (cachedFiles.Count < 2)
+                {
+                    _logger.LogWarning("Insufficient cached files for integrity check: {Count}", cachedFiles.Count);
+                    return integrityResults;
+                }
+
+                // Generate comparison requests for all worksheet combinations
+                var comparisonRequests = GenerateWorksheetComparisonRequests(cachedFiles);
+                
+                _logger.LogInformation("Generated {RequestCount} worksheet comparison requests", comparisonRequests.Count);
+
+                if (!comparisonRequests.Any())
+                {
+                    _logger.LogWarning("No worksheet comparison requests generated");
+                    return integrityResults;
+                }
+
+                // Perform worksheet-level comparisons
+                var worksheetComparisons = await _worksheetComparisonService.CompareWorksheetsBetweenFilesAsync(cachedFiles, comparisonRequests);
+
+                // Group results by source file for file-level integrity results
+                var groupedComparisons = worksheetComparisons
+                    .GroupBy(c => cachedFiles.First(f => f.Worksheets.Any(w => w.Name == c.SourceWorksheetName)).FileId)
+                    .ToList();
+
+                foreach (var fileGroup in groupedComparisons)
+                {
+                    var sourceFile = cachedFiles.First(f => f.FileId == fileGroup.Key);
+                    
+                    var integrityResult = new FileIntegrityResult
+                    {
+                        FileId = sourceFile.FileId,
+                        FileName = sourceFile.FileName,
+                        WorksheetComparisons = fileGroup.ToList()
+                    };
+
+                    // Determine overall file status based on worksheet comparisons
+                    SetFileIntegrityStatus(integrityResult);
+
+                    integrityResults.Add(integrityResult);
+                    
+                    _logger.LogInformation("File '{FileName}' integrity analysis: Status={Status}, Comparisons={Count}", 
+                        sourceFile.FileName, integrityResult.OverallStatus, integrityResult.WorksheetComparisons.Count);
+                }
+
+                _logger.LogInformation("File-level integrity check complete: {ResultCount} files analyzed", 
+                    integrityResults.Count);
+
+                return integrityResults;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during file integrity check");
+                return integrityResults;
+            }
+        }
+
+        private List<WorksheetComparisonRequest> GenerateWorksheetComparisonRequests(List<ProcessedFileCache> files)
+        {
+            var requests = new List<WorksheetComparisonRequest>();
+            
+            try
+            {
+                // Compare each file with every other file
+                for (int i = 0; i < files.Count; i++)
+                {
+                    for (int j = i + 1; j < files.Count; j++)
+                    {
+                        var file1 = files[i];
+                        var file2 = files[j];
+                        
+                        // Try to match worksheets by name similarity
+                        foreach (var worksheet1 in file1.Worksheets)
+                        {
+                            // Look for similar worksheet names in file2
+                            var matchingWorksheet = file2.Worksheets
+                                .OrderByDescending(w => CalculateNameSimilarity(worksheet1.Name, w.Name))
+                                .FirstOrDefault();
+                            
+                            if (matchingWorksheet != null)
+                            {
+                                requests.Add(new WorksheetComparisonRequest
+                                {
+                                    File1Id = file1.FileId,
+                                    File1WorksheetName = worksheet1.Name,
+                                    File2Id = file2.FileId,
+                                    File2WorksheetName = matchingWorksheet.Name,
+                                    MatchThreshold = 0.90 // 90% threshold for row matching
+                                });
+                                
+                                _logger.LogDebug("Generated comparison request: {File1}[{WS1}] vs {File2}[{WS2}]", 
+                                    file1.FileName, worksheet1.Name, file2.FileName, matchingWorksheet.Name);
+                            }
+                        }
+                    }
+                }
+                
+                _logger.LogInformation("Generated {RequestCount} worksheet comparison requests from {FileCount} files", 
+                    requests.Count, files.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating worksheet comparison requests");
+            }
+            
+            return requests;
+        }
+
+        private double CalculateNameSimilarity(string name1, string name2)
+        {
+            if (string.Equals(name1, name2, StringComparison.OrdinalIgnoreCase))
+                return 1.0;
+                
+            // Simple similarity based on common words and length
+            var words1 = name1.ToLowerInvariant().Split('_', ' ', '-').Where(w => !string.IsNullOrEmpty(w)).ToHashSet();
+            var words2 = name2.ToLowerInvariant().Split('_', ' ', '-').Where(w => !string.IsNullOrEmpty(w)).ToHashSet();
+            
+            if (!words1.Any() || !words2.Any())
+                return 0.0;
+            
+            var intersection = words1.Intersect(words2).Count();
+            var union = words1.Union(words2).Count();
+            
+            return union > 0 ? (double)intersection / union : 0.0;
+        }
+
+        private void SetFileIntegrityStatus(FileIntegrityResult result)
+        {
+            if (!result.WorksheetComparisons.Any())
+            {
+                result.OverallStatus = "no_comparison";
+                result.Status = ComparisonStatus.Error;
+                return;
+            }
+
+            var successCount = result.WorksheetComparisons.Count(c => c.Status == ComparisonStatus.Success);
+            var warningCount = result.WorksheetComparisons.Count(c => c.Status == ComparisonStatus.Warning);
+            var errorCount = result.WorksheetComparisons.Count(c => c.Status == ComparisonStatus.Error);
+            
+            result.HasExactMatches = result.WorksheetComparisons.Any(c => c.SimilarityLevel == SimilarityLevel.ExactMatch);
+            result.HasGoodMatches = result.WorksheetComparisons.Any(c => c.Status == ComparisonStatus.Success);
+            result.HasIssues = warningCount > 0 || errorCount > 0;
+
+            // Determine overall status based on worksheet comparison results
+            if (successCount == result.WorksheetComparisons.Count)
+            {
+                // All comparisons are successful (90%+ similarity)
+                if (result.HasExactMatches)
+                {
+                    result.OverallStatus = "excellent_match";
+                    result.Status = ComparisonStatus.Success;
+                }
+                else
+                {
+                    result.OverallStatus = "good_match";
+                    result.Status = ComparisonStatus.Success;
+                }
+            }
+            else if (result.HasGoodMatches)
+            {
+                // Some good matches, some issues
+                result.OverallStatus = "has_differences";
+                result.Status = ComparisonStatus.Warning;
+            }
+            else
+            {
+                // No good matches
+                result.OverallStatus = "poor_match";
+                result.Status = ComparisonStatus.Error;
+            }
+            
+            _logger.LogDebug("File status determination: Success={Success}, Warning={Warning}, Error={Error} -> Status={Status}", 
+                successCount, warningCount, errorCount, result.OverallStatus);
+        }
+
+        private async Task CacheNormalizedFileDataAsync(string filePath, FileAnalysisResult analysisResult)
+        {
+            try
+            {
+                _logger.LogInformation("Caching normalized data for file: {FileName}", analysisResult.FileName);
+
+                var normalizedData = await _dataNormalizationService.NormalizeFileDataAsync(filePath, analysisResult);
+                var fileHash = await _dataNormalizationService.CalculateFileHashAsync(filePath);
+                
+                var cacheEntry = new ProcessedFileCache
+                {
+                    FileId = analysisResult.FileId,
+                    FileName = analysisResult.FileName,
+                    ProcessedAt = DateTime.Now,
+                    Worksheets = normalizedData,
+                    FileHash = fileHash
                 };
                 
-                headerMappings.Add(mapping);
+                lock (_cacheLock)
+                {
+                    _processedFilesCache[analysisResult.FileId] = cacheEntry;
+                    
+                    // Clean old entries (keep only last 100 files to prevent memory issues)
+                    if (_processedFilesCache.Count > 100)
+                    {
+                        var oldestEntries = _processedFilesCache.Values
+                            .OrderBy(v => v.ProcessedAt)
+                            .Take(_processedFilesCache.Count - 100)
+                            .Select(v => v.FileId)
+                            .ToList();
+                            
+                        foreach (var key in oldestEntries)
+                        {
+                            _processedFilesCache.TryRemove(key, out _);
+                        }
+                        
+                        _logger.LogInformation("Cleaned {CleanedCount} old cache entries", oldestEntries.Count);
+                    }
+                }
+                
+                _logger.LogInformation("Successfully cached file data for {FileName}: {WorksheetCount} worksheets, Hash={Hash}", 
+                    analysisResult.FileName, normalizedData.Count, fileHash[..8] + "...");
             }
-
-            return headerMappings;
-        }
-
-
-
-        private string GetColumnLetter(int columnIndex)
-        {
-            string columnName = "";
-            while (columnIndex > 0)
+            catch (Exception ex)
             {
-                columnIndex--;
-                columnName = (char)('A' + (columnIndex % 26)) + columnName;
-                columnIndex /= 26;
+                _logger.LogError(ex, "Error caching normalized file data for {FileName}", analysisResult.FileName);
             }
-            return columnName;
-        }
-
-        private int CalculateQualityScore(FileAnalysisResult result)
-        {
-            if (result.ValidationErrors.Any())
-                return 0;
-
-            var score = 100;
-
-            // Deduct points for warnings
-            score -= result.ValidationWarnings.Count * 5;
-
-            // Deduct points if no worksheets found
-            if (!result.Worksheets.Any())
-            {
-                score -= 30;
-            }
-
-            // Deduct points if no headers detected
-            if (!result.Headers.Any())
-            {
-                score -= 20;
-            }
-
-            return Math.Max(0, Math.Min(100, score));
         }
 
         public void CleanupOldTempFiles(int maxAgeHours = 24)
         {
-            try
-            {
-                if (!Directory.Exists(_tempFilePath))
-                    return;
+            _fileAnalysisService.CleanupOldTempFiles(maxAgeHours);
+        }
 
-                var cutoffTime = DateTime.Now.AddHours(-maxAgeHours);
-                var tempFiles = Directory.GetFiles(_tempFilePath);
-
-                foreach (var file in tempFiles)
-                {
-                    try
-                    {
-                        var fileInfo = new FileInfo(file);
-                        if (fileInfo.CreationTime < cutoffTime)
-                        {
-                            File.Delete(file);
-                            _logger.LogInformation("Deleted old temp file: {FileName}", fileInfo.Name);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to delete temp file: {FileName}", file);
-                    }
-                }
-            }
-            catch (Exception ex)
+        public void ClearProcessedFileCache()
+        {
+            lock (_cacheLock)
             {
-                _logger.LogError(ex, "Error during temp file cleanup");
+                var cachedCount = _processedFilesCache.Count;
+                _processedFilesCache.Clear();
+                _logger.LogInformation("Cleared processed file cache: {CachedCount} entries removed", cachedCount);
             }
         }
     }

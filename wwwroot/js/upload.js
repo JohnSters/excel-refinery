@@ -28,6 +28,7 @@
                 progressSection: document.getElementById('progressSection'),
                 processFiles: document.getElementById('processFiles'),
                 previewData: document.getElementById('previewData'),
+                checkIntegrity: document.getElementById('checkIntegrity'),
                 clearFiles: document.getElementById('clearFiles'),
                 progressBar: document.getElementById('progressBar'),
                 progressText: document.getElementById('progressText')
@@ -58,6 +59,9 @@
             }
             if (cachedElements.previewData) {
                 cachedElements.previewData.addEventListener('click', previewData);
+            }
+            if (cachedElements.checkIntegrity) {
+                cachedElements.checkIntegrity.addEventListener('click', checkFileIntegrity);
             }
             if (cachedElements.clearFiles) {
                 cachedElements.clearFiles.addEventListener('click', clearAllFiles);
@@ -684,6 +688,285 @@
         }
     };
     
+    const checkFileIntegrity = function() {
+        try {
+            if (uploadedFiles.length < 2) {
+                if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                    window.StylingTemplate.showDemoAlert('warning', 'Please upload at least 2 files to check data integrity.');
+                }
+                return;
+            }
+
+            // Check if each file has a selected worksheet
+            const filesWithSelections = uploadedFiles.filter(file => 
+                file.worksheets && file.worksheets.some(ws => ws.selected)
+            );
+
+            if (filesWithSelections.length < 2) {
+                if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                    window.StylingTemplate.showDemoAlert('warning', 'Please select a worksheet from each file before checking integrity. Click on the worksheet tabs to select them.');
+                }
+                return;
+            }
+
+            // Create comparison requests based on selected worksheets
+            const comparisonRequests = [];
+            
+            // Compare each file with every other file using selected worksheets
+            for (let i = 0; i < filesWithSelections.length; i++) {
+                for (let j = i + 1; j < filesWithSelections.length; j++) {
+                    const file1 = filesWithSelections[i];
+                    const file2 = filesWithSelections[j];
+                    
+                    const selectedWorksheet1 = file1.worksheets.find(ws => ws.selected);
+                    const selectedWorksheet2 = file2.worksheets.find(ws => ws.selected);
+                    
+                    if (selectedWorksheet1 && selectedWorksheet2) {
+                        comparisonRequests.push({
+                            file1Id: file1.id,
+                            file1WorksheetName: selectedWorksheet1.name,
+                            file2Id: file2.id,
+                            file2WorksheetName: selectedWorksheet2.name,
+                            matchThreshold: 0.90 // 90% threshold for row matching
+                        });
+                    }
+                }
+            }
+
+            if (comparisonRequests.length === 0) {
+                if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                    window.StylingTemplate.showDemoAlert('warning', 'Unable to create comparison requests. Please ensure each file has a selected worksheet.');
+                }
+                return;
+            }
+            
+            // Show loading spinner
+            showLoadingSpinner();
+            
+            if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                window.StylingTemplate.showDemoAlert('info', `Comparing ${comparisonRequests.length} worksheet combination(s)...`);
+            }
+
+            fetch('/Home/CheckWorksheetIntegrity', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: JSON.stringify(comparisonRequests)
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoadingSpinner();
+                
+                if (data.success) {
+                    // Convert worksheet comparisons to file-level results for display
+                    const fileResults = convertWorksheetComparisonsToFileResults(data.results, filesWithSelections);
+                    showIntegrityResults(fileResults);
+                    if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                        window.StylingTemplate.showDemoAlert('success', 'Worksheet integrity check completed!');
+                    }
+                } else {
+                    console.error('Integrity check failed:', data.message);
+                    if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                        window.StylingTemplate.showDemoAlert('danger', data.message || 'Error checking worksheet integrity');
+                    }
+                }
+            })
+            .catch(error => {
+                hideLoadingSpinner();
+                console.error('Error checking worksheet integrity:', error);
+                if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                    window.StylingTemplate.showDemoAlert('danger', 'Error checking worksheet integrity. Please try again.');
+                }
+            });
+        } catch (error) {
+            console.error('Error in checkFileIntegrity:', error);
+        }
+    };
+
+    const convertWorksheetComparisonsToFileResults = function(worksheetComparisons, files) {
+        try {
+            // Group comparisons by source file
+            const fileGroups = new Map();
+            
+            worksheetComparisons.forEach(comparison => {
+                // Find the source file by looking for the worksheet name
+                const sourceFile = files.find(file => 
+                    file.worksheets.some(ws => ws.name === comparison.sourceWorksheetName)
+                );
+                
+                if (sourceFile) {
+                    if (!fileGroups.has(sourceFile.id)) {
+                        fileGroups.set(sourceFile.id, {
+                            fileId: sourceFile.id,
+                            fileName: sourceFile.name,
+                            worksheetComparisons: [],
+                            overallStatus: 'no_comparison'
+                        });
+                    }
+                    
+                    fileGroups.get(sourceFile.id).worksheetComparisons.push(comparison);
+                }
+            });
+            
+            // Determine overall status for each file
+            const results = Array.from(fileGroups.values()).map(fileGroup => {
+                const comparisons = fileGroup.worksheetComparisons;
+                const successCount = comparisons.filter(c => c.status === 0).length; // Success = 0
+                const warningCount = comparisons.filter(c => c.status === 1).length; // Warning = 1
+                const errorCount = comparisons.filter(c => c.status === 2).length;   // Error = 2
+                
+                // Determine overall status
+                if (successCount === comparisons.length) {
+                    // All comparisons successful
+                    const hasExactMatches = comparisons.some(c => c.similarityScore >= 1.0);
+                    fileGroup.overallStatus = hasExactMatches ? 'excellent_match' : 'good_match';
+                } else if (successCount > 0) {
+                    // Some good matches, some issues
+                    fileGroup.overallStatus = 'has_differences';
+                } else {
+                    // No good matches
+                    fileGroup.overallStatus = 'poor_match';
+                }
+                
+                return fileGroup;
+            });
+            
+            return results;
+        } catch (error) {
+            console.error('Error converting worksheet comparisons to file results:', error);
+            return [];
+        }
+    };
+
+    const showIntegrityResults = function(results) {
+        try {
+            // Remove existing modal if any
+            const existingModal = document.getElementById('integrityResultsModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            // Create integrity results modal
+            let resultsHtml = '';
+            
+            results.forEach(result => {
+                // Map new status values to display properties
+                const getStatusDisplay = (status) => {
+                    switch(status) {
+                        case 'excellent_match':
+                            return { icon: '✅', text: 'Excellent Match', class: 'status-excellent-match' };
+                        case 'good_match':
+                            return { icon: '✅', text: 'Good Data Consistency', class: 'status-good-match' };
+                        case 'has_differences':
+                            return { icon: '⚠️', text: 'Some Differences Found', class: 'status-has-differences' };
+                        case 'poor_match':
+                            return { icon: '❌', text: 'Significant Differences', class: 'status-poor-match' };
+                        default:
+                            return { icon: 'ℹ️', text: 'No Comparison', class: 'status-no-comparison' };
+                    }
+                };
+
+                const statusDisplay = getStatusDisplay(result.overallStatus);
+
+                resultsHtml += `
+                    <div class="integrity-result-item ${statusDisplay.class}">
+                        <div class="integrity-result-header">
+                            <h5>${statusDisplay.icon} ${result.fileName}</h5>
+                            <span class="integrity-status">${statusDisplay.text}</span>
+                        </div>
+                        <div class="integrity-comparisons">
+                            ${(result.worksheetComparisons || []).map(comparison => {
+                                // Map comparison status to CSS classes and display
+                                const getComparisonDisplay = (status) => {
+                                    switch(status) {
+                                        case 0: // Success
+                                            return { class: 'comparison-success', bgClass: 'bg-success-subtle' };
+                                        case 1: // Warning  
+                                            return { class: 'comparison-warning', bgClass: 'bg-warning-subtle' };
+                                        case 2: // Error
+                                            return { class: 'comparison-error', bgClass: 'bg-danger-subtle' };
+                                        default:
+                                            return { class: 'comparison-unknown', bgClass: 'bg-secondary-subtle' };
+                                    }
+                                };
+
+                                const compDisplay = getComparisonDisplay(comparison.status);
+
+                                return `
+                                    <div class="comparison-item ${compDisplay.class} ${compDisplay.bgClass} p-3 mb-2 rounded">
+                                        <div class="comparison-header d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>Worksheet:</strong> ${comparison.sourceWorksheetName} 
+                                                <br><strong>vs</strong> ${comparison.comparedWithFileName} [${comparison.comparedWithWorksheetName}]
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="similarity-score badge ${comparison.status === 0 ? 'bg-success' : comparison.status === 1 ? 'bg-warning' : 'bg-danger'}">
+                                                    ${Math.round(comparison.similarityScore * 100)}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="comparison-status mt-2">
+                                            <i class="material-icons me-1">${comparison.statusIcon || 'info'}</i>
+                                            ${comparison.statusMessage}
+                                        </div>
+                                        ${comparison.specificDifferences && comparison.specificDifferences.length > 0 ? `
+                                            <div class="specific-differences mt-2">
+                                                <strong>Details:</strong>
+                                                <ul class="mb-0 mt-1">
+                                                    ${comparison.specificDifferences.map(diff => `<li>${diff}</li>`).join('')}
+                                                </ul>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            const modalHtml = `
+                <div class="modal fade" id="integrityResultsModal" tabindex="-1" aria-labelledby="integrityResultsModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="integrityResultsModalLabel">
+                                    <i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">fact_check</i>
+                                    File Integrity Check Results
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="integrity-results-container">
+                                    ${resultsHtml}
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn-excel btn-excel-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to page
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('integrityResultsModal'));
+            modal.show();
+            
+            // Clean up when modal is hidden
+            document.getElementById('integrityResultsModal').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
+        } catch (error) {
+            console.error('Error showing integrity results:', error);
+        }
+    };
+
     const clearAllFiles = function() {
         try {
             if (confirm('Are you sure you want to clear all uploaded files?')) {
@@ -703,6 +986,17 @@
                 if (cachedElements.fileInput) {
                     cachedElements.fileInput.value = '';
                 }
+                
+                // Clear the server-side processed file cache
+                fetch('/Home/ClearProcessedFileCache', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    }
+                })
+                .catch(error => {
+                    console.error('Error clearing processed file cache:', error);
+                });
             }
         } catch (error) {
             console.error('Error clearing files:', error);

@@ -120,6 +120,71 @@ namespace ExcelRefinery.Controllers
             }
         }
 
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> CheckFileIntegrity([FromBody] List<string> fileIds)
+        {
+            try
+            {
+                if (fileIds == null || fileIds.Count < 2)
+                {
+                    return Json(new { success = false, message = "Please select at least 2 files to check data integrity." });
+                }
+
+                var integrityResults = await _excelProcessingService.CheckFileIntegrityAsync(fileIds);
+                
+                _logger.LogInformation("File integrity check completed for {FileCount} files by user request", fileIds.Count);
+                return Json(new { success = true, results = integrityResults });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking file integrity");
+                return Json(new { success = false, message = "Error checking file integrity. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> CheckWorksheetIntegrity([FromBody] List<WorksheetComparisonRequest> requests)
+        {
+            try
+            {
+                if (requests == null || requests.Count == 0)
+                {
+                    return Json(new { success = false, message = "Please select worksheets from at least 2 files to check data integrity." });
+                }
+
+                _logger.LogInformation("Starting worksheet integrity check for {RequestCount} comparison requests", requests.Count);
+
+                var integrityResults = await _excelProcessingService.CheckWorksheetIntegrityAsync(requests);
+                
+                _logger.LogInformation("Worksheet integrity check completed for {ComparisonCount} worksheet comparisons by user request", integrityResults.Count);
+                return Json(new { success = true, results = integrityResults });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking worksheet integrity");
+                return Json(new { success = false, message = "Error checking worksheet integrity. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [Authorize]
+        public IActionResult ClearProcessedFileCache()
+        {
+            try
+            {
+                _excelProcessingService.ClearProcessedFileCache();
+                _logger.LogInformation("Processed file cache cleared by user request");
+                return Json(new { success = true, message = "Processed file cache cleared successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error clearing processed file cache");
+                return Json(new { success = false, message = "Error clearing processed file cache." });
+            }
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
