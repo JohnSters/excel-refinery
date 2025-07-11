@@ -31,7 +31,8 @@
                 checkIntegrity: document.getElementById('checkIntegrity'),
                 clearFiles: document.getElementById('clearFiles'),
                 progressBar: document.getElementById('progressBar'),
-                progressText: document.getElementById('progressText')
+                progressText: document.getElementById('progressText'),
+                featureInfoSection: document.getElementById('featureInfoSection')
             };
         } catch (error) {
             console.error('Error initializing DOM elements:', error);
@@ -217,6 +218,7 @@
 
                     renderFileList();
                     showProcessSection();
+                    updateProcessButtonStates();
 
                     if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
                         window.StylingTemplate.showDemoAlert('success', `Successfully processed ${data.files.length} file(s)`);
@@ -541,14 +543,42 @@
     
     const showProcessSection = function() {
         try {
-            if (uploadedFiles.length > 0 && cachedElements.processSection) {
+            if (cachedElements.fileList.innerHTML.trim() !== '') {
+                cachedElements.fileListSection.style.display = 'block';
                 cachedElements.processSection.style.display = 'block';
+                if (cachedElements.featureInfoSection) {
+                    cachedElements.featureInfoSection.style.display = 'none';
+                }
+            } else {
+                cachedElements.fileListSection.style.display = 'none';
+                cachedElements.processSection.style.display = 'none';
+                if (cachedElements.featureInfoSection) {
+                    cachedElements.featureInfoSection.style.display = 'block';
+                }
             }
         } catch (error) {
             console.error('Error showing process section:', error);
         }
     };
-    
+
+    const updateProcessButtonStates = function() {
+        try {
+            const fileCount = uploadedFiles.length;
+            if (cachedElements.checkIntegrity) {
+                const isDisabled = fileCount < 2;
+                cachedElements.checkIntegrity.disabled = isDisabled;
+                
+                if (isDisabled) {
+                    cachedElements.checkIntegrity.setAttribute('title', 'Please upload at least 2 files to compare.');
+                } else {
+                    cachedElements.checkIntegrity.removeAttribute('title');
+                }
+            }
+        } catch (error) {
+            console.error('Error updating process button states:', error);
+        }
+    };
+
     const startProcessing = function() {
         try {
             if (cachedElements.progressSection) {
@@ -920,37 +950,33 @@
 
     const clearAllFiles = function() {
         try {
-            if (confirm('Are you sure you want to clear all uploaded files?')) {
-                uploadedFiles = [];
-                selectedWorksheets.clear();
-                selectedHeaders.clear();
-                
-                if (cachedElements.fileListSection) {
-                    cachedElements.fileListSection.style.display = 'none';
-                }
-                if (cachedElements.processSection) {
-                    cachedElements.processSection.style.display = 'none';
-                }
-                if (cachedElements.progressSection) {
-                    cachedElements.progressSection.style.display = 'none';
-                }
-                if (cachedElements.fileInput) {
-                    cachedElements.fileInput.value = '';
-                }
-                
-                // Clear the server-side processed file cache
-                fetch('/Home/ClearProcessedFileCache', {
-                    method: 'POST',
-                    headers: {
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
-                    }
-                })
-                .catch(error => {
-                    console.error('Error clearing processed file cache:', error);
-                });
+            // Confirmation dialog
+            if (!confirm('Are you sure you want to clear all uploaded files? This cannot be undone.')) {
+                return;
+            }
+
+            // Reset global state
+            uploadedFiles = [];
+            selectedWorksheets.clear();
+            selectedHeaders.clear();
+
+            // Clear UI
+            cachedElements.fileList.innerHTML = '';
+            cachedElements.fileInput.value = ''; // Reset file input
+
+            // Hide sections and update buttons
+            showProcessSection();
+            updateProcessButtonStates();
+
+            // Show a confirmation message
+            if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                window.StylingTemplate.showDemoAlert('info', 'All files have been cleared.');
             }
         } catch (error) {
             console.error('Error clearing files:', error);
+            if (window.StylingTemplate && window.StylingTemplate.showDemoAlert) {
+                window.StylingTemplate.showDemoAlert('danger', 'An error occurred while clearing files.');
+            }
         }
     };
     
@@ -993,6 +1019,7 @@
             try {
                 initializeElements();
                 initializeEventListeners();
+                updateProcessButtonStates();
                 console.log('Upload Handler initialized successfully');
             } catch (error) {
                 console.error('Error initializing Upload Handler:', error);
@@ -1012,6 +1039,7 @@
                 } else {
                     renderFileList();
                 }
+                updateProcessButtonStates();
             } catch (error) {
                 console.error('Error removing file:', error);
             }
