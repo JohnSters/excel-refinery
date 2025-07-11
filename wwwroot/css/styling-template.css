@@ -1,0 +1,560 @@
+/**
+ * ExcelRefinery Styling Template
+ * File: styling-template.css
+ * Description: Comprehensive styling template for UI components following material design principles
+ * Author: ExcelRefinery Development Team
+ */
+
+/* ==========================================================================
+   CSS Variables - Color Scheme
+   ========================================================================== */
+:root {
+    /* Primary Color Palette */
+    --federal-blue: #03045e;
+    --honolulu-blue: #0077b6;
+    --pacific-cyan: #00b4d8;
+    --non-photo-blue: #90e0ef;
+    --light-cyan: #caf0f8;
+    
+    /* Message Colors */
+    --success-green: #4caf50;
+    --success-green-light: #c8e6c9;
+    --warning-amber: #ff9800;
+    --warning-amber-light: #ffe0b2;
+    --error-red: #f44336;
+    --error-red-light: #ffcdd2;
+    --info-blue: var(--pacific-cyan);
+    --info-blue-light: var(--light-cyan);
+    
+    /* Neutral Colors */
+    --white: #ffffff;
+    --light-grey: #f5f5f5;
+    --medium-grey: #e0e0e0;
+    --dark-grey: #424242;
+    --text-primary: #212121;
+    --text-secondary: #757575;
+    
+    /* No shadows - clean flat design */
+    
+    /* Border Radius */
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+    
+    /* Transitions */
+    --transition-fast: 0.15s ease-in-out;
+    --transition-normal: 0.3s ease-in-out;
+    --transition-slow: 0.5s ease-in-out;
+}
+
+/* ==========================================================================
+   Styling Template Page Layout
+   ========================================================================== */
+.styling-template {
+    padding: 2rem 0;
+    background: linear-gradient(135deg, var(--light-cyan) 0%, var(--white) 100%);
+    min-height: 100vh;
+}
+
+.styling-section {
+    margin-bottom: 3rem;
+    padding: 1rem;
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+}
+
+.styling-section h2 {
+    color: var(--federal-blue);
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    border-left: 4px solid var(--pacific-cyan);
+    padding-left: 1rem;
+}
+
+.styling-section h3 {
+    color: var(--honolulu-blue);
+    margin: 1.5rem 0 1rem 0;
+    font-weight: 500;
+}
+
+.component-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.component-example {
+    padding: 1rem;
+    background: var(--light-grey);
+    border-radius: var(--border-radius-md);
+    text-align: center;
+}
+
+/* ==========================================================================
+   Color Palette Display
+   ========================================================================== */
+.color-palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.color-swatch {
+    text-align: center;
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    transition: transform var(--transition-fast);
+}
+
+.color-swatch:hover {
+    opacity: 0.9;
+}
+
+.color-sample {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-weight: 500;
+}
+
+.color-info {
+    padding: 0.75rem;
+    background: var(--white);
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.color-federal-blue { background-color: var(--federal-blue); }
+.color-honolulu-blue { background-color: var(--honolulu-blue); }
+.color-pacific-cyan { background-color: var(--pacific-cyan); }
+.color-non-photo-blue { background-color: var(--non-photo-blue); color: var(--text-primary) !important; }
+.color-light-cyan { background-color: var(--light-cyan); color: var(--text-primary) !important; }
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+.btn-excel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius-md);
+    border: none;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    min-width: 120px;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-excel:active {
+    opacity: 0.4;
+}
+
+.btn-excel i {
+    margin-right: 0.5rem;
+    font-size: 1.125rem;
+}
+
+/* Button Variants */
+.btn-excel-primary {
+    background-color: var(--honolulu-blue);
+    color: var(--white);
+}
+
+.btn-excel-primary:hover {
+    background-color: var(--pacific-cyan);
+}
+
+.btn-excel-secondary {
+    background-color: var(--non-photo-blue);
+    color: var(--federal-blue);
+}
+
+.btn-excel-secondary:hover {
+    background-color: var(--light-cyan);
+}
+
+.btn-excel-success {
+    background-color: var(--success-green);
+    color: var(--white);
+}
+
+.btn-excel-success:hover {
+    background-color: #66bb6a;
+}
+
+.btn-excel-warning {
+    background-color: var(--warning-amber);
+    color: var(--white);
+}
+
+.btn-excel-warning:hover {
+    background-color: #ffb74d;
+}
+
+.btn-excel-danger {
+    background-color: var(--error-red);
+    color: var(--white);
+}
+
+.btn-excel-danger:hover {
+    background-color: #e57373;
+}
+
+.btn-excel-outline {
+    background-color: transparent;
+    border: 2px solid var(--honolulu-blue);
+    color: var(--honolulu-blue);
+}
+
+.btn-excel-outline:hover {
+    background-color: var(--honolulu-blue);
+    color: var(--white);
+}
+
+/* Button Sizes */
+.btn-excel-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+}
+
+.btn-excel-lg {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+}
+
+/* Ripple Effect */
+.btn-excel {
+    position: relative;
+    overflow: hidden;
+}
+
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(0);
+    animation: ripple-animation 0.6s linear;
+    pointer-events: none;
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+/* ==========================================================================
+   Cards
+   ========================================================================== */
+.card-excel {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    transition: all var(--transition-normal);
+}
+
+.card-excel:hover {
+    opacity: 0.95;
+}
+
+.card-excel-header {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, var(--federal-blue), var(--honolulu-blue));
+    color: var(--white);
+}
+
+.card-excel-header h4 {
+    margin: 0;
+    font-weight: 500;
+}
+
+.card-excel-body {
+    padding: 1.5rem;
+}
+
+.card-excel-footer {
+    padding: 1rem 1.5rem;
+    background: var(--light-grey);
+    border-top: 1px solid var(--medium-grey);
+}
+
+/* ==========================================================================
+   Forms and Inputs
+   ========================================================================== */
+.form-group-excel {
+    margin-bottom: 1.5rem;
+}
+
+.form-label-excel {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.form-control-excel {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--medium-grey);
+    border-radius: var(--border-radius-md);
+    font-size: 1rem;
+    transition: all var(--transition-fast);
+    background: var(--white);
+}
+
+.form-control-excel:focus {
+    outline: none;
+    border-color: var(--pacific-cyan);
+}
+
+.form-control-excel::placeholder {
+    color: var(--text-secondary);
+}
+
+/* Select Dropdown */
+.select-excel {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.select-excel select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--medium-grey);
+    border-radius: var(--border-radius-md);
+    background: var(--white);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    appearance: none;
+}
+
+.select-excel::after {
+    content: 'keyboard_arrow_down';
+    font-family: 'Material Icons';
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--text-secondary);
+}
+
+.select-excel select:focus {
+    outline: none;
+    border-color: var(--pacific-cyan);
+}
+
+/* ==========================================================================
+   Alerts and Messages
+   ========================================================================== */
+.alert-excel {
+    padding: 1rem 1.5rem;
+    border-radius: var(--border-radius-md);
+    margin: 1rem 0;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+}
+
+.alert-excel i {
+    margin-right: 0.75rem;
+    font-size: 1.25rem;
+}
+
+.alert-excel-success {
+    background: var(--success-green-light);
+    color: #2e7d32;
+    border-left: 4px solid var(--success-green);
+}
+
+.alert-excel-warning {
+    background: var(--warning-amber-light);
+    color: #f57c00;
+    border-left: 4px solid var(--warning-amber);
+}
+
+.alert-excel-danger {
+    background: var(--error-red-light);
+    color: #c62828;
+    border-left: 4px solid var(--error-red);
+}
+
+.alert-excel-info {
+    background: var(--info-blue-light);
+    color: var(--federal-blue);
+    border-left: 4px solid var(--info-blue);
+}
+
+/* ==========================================================================
+   Accordion
+   ========================================================================== */
+.accordion-excel {
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+.accordion-excel-item {
+    border-bottom: 1px solid var(--medium-grey);
+}
+
+.accordion-excel-item:last-child {
+    border-bottom: none;
+}
+
+.accordion-excel-header {
+    padding: 1.25rem;
+    background: var(--light-grey);
+    cursor: pointer;
+    user-select: none;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.accordion-excel-header:hover {
+    background: var(--non-photo-blue);
+}
+
+.accordion-excel-header.active {
+    background: var(--pacific-cyan);
+    color: var(--white);
+}
+
+.accordion-excel-content {
+    padding: 1.5rem;
+    background: var(--white);
+    display: none;
+}
+
+.accordion-excel-content.active {
+    display: block;
+}
+
+/* ==========================================================================
+   Tables
+   ========================================================================== */
+.table-excel {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--white);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+.table-excel th {
+    background: linear-gradient(135deg, var(--federal-blue), var(--honolulu-blue));
+    color: var(--white);
+    padding: 1rem;
+    text-align: left;
+    font-weight: 500;
+}
+
+.table-excel td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--medium-grey);
+}
+
+.table-excel tbody tr:hover {
+    background: var(--light-cyan);
+}
+
+.table-excel tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ==========================================================================
+   Progress Bars
+   ========================================================================== */
+.progress-excel {
+    width: 100%;
+    height: 8px;
+    background: var(--medium-grey);
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.progress-excel-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--honolulu-blue), var(--pacific-cyan));
+    border-radius: var(--border-radius-sm);
+    transition: width var(--transition-normal);
+}
+
+/* ==========================================================================
+   Navigation
+   ========================================================================== */
+.nav-excel {
+    display: flex;
+    background: var(--white);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+.nav-excel-item {
+    flex: 1;
+    padding: 1rem;
+    text-align: center;
+    background: var(--light-grey);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    border-right: 1px solid var(--medium-grey);
+}
+
+.nav-excel-item:last-child {
+    border-right: none;
+}
+
+.nav-excel-item:hover {
+    background: var(--non-photo-blue);
+}
+
+.nav-excel-item.active {
+    background: var(--pacific-cyan);
+    color: var(--white);
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
+.mb-4 { margin-bottom: 2rem; }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.mt-4 { margin-top: 2rem; }
+
+.p-0 { padding: 0; }
+.p-1 { padding: 0.5rem; }
+.p-2 { padding: 1rem; }
+.p-3 { padding: 1.5rem; }
+.p-4 { padding: 2rem; }
+
+.rounded { border-radius: var(--border-radius-md); }
+.rounded-lg { border-radius: var(--border-radius-lg); } 

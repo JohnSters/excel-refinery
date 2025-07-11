@@ -1,4 +1,5 @@
 using ExcelRefinery.Data;
+using ExcelRefinery.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,6 +13,13 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
+// Register Excel processing services
+builder.Services.AddScoped<IFileAnalysisService, FileAnalysisService>();
+builder.Services.AddScoped<IDataNormalizationService, DataNormalizationService>();
+builder.Services.AddScoped<IWorksheetComparisonService, WorksheetComparisonService>();
+builder.Services.AddScoped<IExcelProcessingService, ExcelProcessingService>();
+
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();

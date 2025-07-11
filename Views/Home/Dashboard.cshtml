@@ -1,0 +1,84 @@
+@{
+    ViewData["Title"] = "Dashboard - ExcelRefinery";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styling-template.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+}
+
+<div class="container">
+    <div class="styling-section">
+        <div class="text-center">
+            <h1 style="color: var(--federal-blue); margin-bottom: 2rem;">
+                <i class="material-icons" style="font-size: 3rem; vertical-align: middle; margin-right: 1rem;">dashboard</i>
+                Welcome to Your Dashboard
+            </h1>
+            
+            <div class="alert-excel alert-excel-success">
+                <i class="material-icons">check_circle</i>
+                <span>You are successfully logged in! Dashboard functionality coming soon.</span>
+            </div>
+
+            <p class="lead" style="color: var(--text-secondary); margin-bottom: 3rem;">
+                This is where authenticated users will access all ExcelRefinery features.
+            </p>
+
+            <!-- Quick Actions -->
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card-excel text-center">
+                        <div class="card-excel-body">
+                            <i class="material-icons" style="font-size: 3rem; color: var(--pacific-cyan); margin-bottom: 1rem;">upload_file</i>
+                            <h5 style="color: var(--federal-blue);">Upload Files</h5>
+                            <p style="color: var(--text-secondary);">Upload and process Excel files</p>
+                            <a asp-controller="Home" asp-action="Upload" class="btn-excel btn-excel-primary">
+                                <i class="material-icons">upload</i>
+                                Upload Files
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card-excel text-center">
+                        <div class="card-excel-body">
+                            <i class="material-icons" style="font-size: 3rem; color: var(--honolulu-blue); margin-bottom: 1rem;">analytics</i>
+                            <h5 style="color: var(--federal-blue);">View Reports</h5>
+                            <p style="color: var(--text-secondary);">Access your analysis reports</p>
+                            <button class="btn-excel btn-excel-secondary" disabled>
+                                <i class="material-icons">assessment</i>
+                                Coming Soon
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card-excel text-center">
+                        <div class="card-excel-body">
+                            <i class="material-icons" style="font-size: 3rem; color: var(--federal-blue); margin-bottom: 1rem;">settings</i>
+                            <h5 style="color: var(--federal-blue);">Settings</h5>
+                            <p style="color: var(--text-secondary);">Configure your preferences</p>
+                            <button class="btn-excel btn-excel-outline" disabled>
+                                <i class="material-icons">tune</i>
+                                Coming Soon
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 3rem;">
+                <p style="color: var(--text-secondary);">
+                    This dashboard will be fully developed in the next phase of the project.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/styling-template.js" asp-append-version="true"></script>
+} 

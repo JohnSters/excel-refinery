@@ -1,0 +1,105 @@
+@{
+    ViewData["Title"] = "Upload Excel Files - ExcelRefinery";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@Html.AntiForgeryToken()
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styling-template.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/upload.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+}
+
+<div class="upload-container">
+    <!-- Page Header -->
+    <div class="styling-section">
+        <div class="text-center mb-4">
+            <h1 style="color: var(--federal-blue); font-weight: 700;">
+                <i class="material-icons" style="font-size: 3rem; vertical-align: middle; margin-right: 1rem;">cloud_upload</i>
+                Upload Excel Files
+            </h1>
+            <p class="lead" style="color: var(--text-secondary);">
+                Upload your Excel files for processing, validation, and analysis
+            </p>
+        </div>
+
+        <!-- Upload Zone -->
+        <div class="upload-zone" id="uploadZone">
+            <input type="file" id="fileInput" class="file-input" multiple accept=".xlsx,.xls,.csv">
+            <div class="upload-content">
+                <i class="material-icons upload-icon">cloud_upload</i>
+                <h3 style="color: var(--federal-blue); margin-bottom: 1rem;">Drop Excel files here or click to browse</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Supports .xlsx, .xls, and .csv files • Multiple files supported • Max 50MB per file
+                </p>
+                <div class="btn-excel btn-excel-primary">
+                    <i class="material-icons">folder_open</i>
+                    Select Files
+                </div>
+            </div>
+        </div>
+
+        <!-- Supported Formats Info -->
+        <div class="alert-excel alert-excel-info" style="margin-top: 1rem;">
+            <i class="material-icons">info</i>
+            <span>Supported formats: Excel (.xlsx, .xls) and CSV (.csv) files. The system will automatically detect headers and worksheets.</span>
+        </div>
+    </div>
+
+    <!-- File List Section -->
+    <div id="fileListSection" class="file-list" style="display: none;">
+        <div class="styling-section">
+            <h2 style="color: var(--federal-blue); margin-bottom: 1.5rem;">
+                <i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">description</i>
+                Uploaded Files
+            </h2>
+            <div id="fileList"></div>
+        </div>
+    </div>
+
+    <!-- Process Controls -->
+    <div id="processSection" class="styling-section" style="display: none;">
+        <h2 style="color: var(--federal-blue); margin-bottom: 1.5rem;">
+            <i class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">settings</i>
+            Processing Options
+        </h2>
+        
+        <div class="alert-excel alert-excel-success">
+            <i class="material-icons">check_circle</i>
+            <span>Files successfully analyzed and ready for processing</span>
+        </div>
+
+        <div class="process-buttons">
+            <button class="btn-excel btn-excel-primary btn-excel-lg" id="processFiles">
+                <i class="material-icons">play_arrow</i>
+                Start Processing
+            </button>
+            <button class="btn-excel btn-excel-secondary btn-excel-lg" id="previewData">
+                <i class="material-icons">preview</i>
+                Preview Data
+            </button>
+            <button class="btn-excel btn-excel-info btn-excel-lg" id="checkIntegrity" disabled title="Please upload at least 2 files to compare.">
+                <i class="material-icons">fact_check</i>
+                Check File Matching
+            </button>
+            <button class="btn-excel btn-excel-outline btn-excel-lg" id="clearFiles">
+                <i class="material-icons">clear_all</i>
+                Clear All Files
+            </button>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <h6 style="color: var(--federal-blue); margin-bottom: 1rem;">Processing Progress</h6>
+            <div class="progress-excel">
+                <div class="progress-excel-bar" id="progressBar" style="width: 0%;"></div>
+            </div>
+            <p id="progressText" style="margin-top: 0.5rem; color: var(--text-secondary);">Initializing...</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/styling-template.js" asp-append-version="true"></script>
+    <script src="~/js/upload.js" asp-append-version="true"></script>
+} 

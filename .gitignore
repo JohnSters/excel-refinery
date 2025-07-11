@@ -15,6 +15,9 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+# Ignore all files in wwwroot/temp
+wwwroot/temp/
+
 # Visual Studio 2015/2017 cache/options directory
 .vs/
 
