@@ -18,6 +18,7 @@ namespace ExcelRefinery.Services
         Task<List<FileIntegrityResult>> CheckWorksheetIntegrityAsync(List<WorksheetComparisonRequest> requests);
         void CleanupOldTempFiles(int maxAgeHours = 24);
         void ClearProcessedFileCache();
+        Task<IEnumerable<ProcessedFileCache>> GetCachedFilesAsync();
     }
 
     public class ExcelProcessingService : IExcelProcessingService
@@ -260,6 +261,11 @@ namespace ExcelRefinery.Services
             {
                 _logger.LogError(ex, "Error caching normalized file data for {FileName}", analysisResult.FileName);
             }
+        }
+
+        public async Task<IEnumerable<ProcessedFileCache>> GetCachedFilesAsync()
+        {
+            return await Task.FromResult(_processedFilesCache.Values.OrderByDescending(f => f.ProcessedAt));
         }
 
         public void CleanupOldTempFiles(int maxAgeHours = 24)

@@ -3,6 +3,14 @@ using ExcelRefinery.Models;
 using ExcelRefinery.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Http;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System;
+using System.Collections.Generic;
 
 namespace ExcelRefinery.Controllers
 {
@@ -10,11 +18,14 @@ namespace ExcelRefinery.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly IExcelProcessingService _excelProcessingService;
+        private readonly IWebHostEnvironment _hostingEnvironment;
 
-        public HomeController(ILogger<HomeController> logger, IExcelProcessingService excelProcessingService)
+
+        public HomeController(ILogger<HomeController> logger, IExcelProcessingService excelProcessingService, IWebHostEnvironment hostingEnvironment)
         {
             _logger = logger;
             _excelProcessingService = excelProcessingService;
+            _hostingEnvironment = hostingEnvironment;
         }
 
         public IActionResult Index()
@@ -42,6 +53,12 @@ namespace ExcelRefinery.Controllers
 
         [Authorize]
         public IActionResult Upload()
+        {
+            return View();
+        }
+
+        [Authorize]
+        public IActionResult ViewReports()
         {
             return View();
         }
@@ -167,5 +184,72 @@ namespace ExcelRefinery.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
+
+        #region API Endpoints for ViewReports
+
+        [HttpPost("api/reports/upload")]
+        [RequestSizeLimit(52428800)] // 50 MB limit
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> UploadFile(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { message = "No file was received for processing." });
+            }
+
+            try
+            {
+                var result = await _excelProcessingService.AnalyzeFileAsync(file);
+                if (result.Status == "error")
+                {
+                    return BadRequest(new { message = "Failed to analyze file.", errors = result.ValidationErrors });
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "File upload failed for {FileName}", file.FileName);
+                return StatusCode(500, new { message = "An unexpected error occurred during file upload." });
+            }
+        }
+
+        [HttpGet("api/reports/files")]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> GetFiles()
+        {
+            var files = await _excelProcessingService.GetCachedFilesAsync();
+            var fileList = files.Select(f => new { f.FileId, f.FileName }).ToList();
+            return Ok(fileList);
+        }
+
+        [HttpGet("api/reports/worksheets/{fileId}")]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> GetWorksheets(string fileId)
+        {
+            var file = (await _excelProcessingService.GetCachedFilesAsync()).FirstOrDefault(f => f.FileId == fileId);
+            if (file == null)
+            {
+                return NotFound();
+            }
+            var worksheetNames = file.Worksheets.Select(w => w.Name).ToList();
+            return Ok(worksheetNames);
+        }
+
+        [HttpGet("api/reports/preview/{fileId}/{worksheetName}")]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> GetDataPreview(string fileId, string worksheetName)
+        {
+            var fileCache = (await _excelProcessingService.GetCachedFilesAsync()).FirstOrDefault(f => f.FileId == fileId);
+            if (fileCache == null)
+            {
+                return NotFound("File not found in cache.");
+            }
+            
+            var tempFileName = $"{fileId}_{Path.GetFileName(fileCache.FileName)}";
+            var result = await _excelProcessingService.GetDataPreviewAsync(tempFileName, worksheetName);
+            return Ok(result);
+        }
+
+        #endregion
     }
 }

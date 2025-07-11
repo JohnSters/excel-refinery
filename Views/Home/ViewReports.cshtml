@@ -1,0 +1,380 @@
+@{
+    ViewData["Title"] = "View Reports - ExcelRefinery";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@Html.AntiForgeryToken()
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styling-template.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/view-reports.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+}
+
+<div class="container view-reports-container">
+    <!-- Header Section -->
+    <div class="view-reports-header">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="header-title">
+                <h1>
+                    <i class="material-icons">analytics</i>
+                    View Reports
+                </h1>
+                <p class="header-subtitle">Analyze Excel files for data integrity and asset management insights</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn-excel btn-excel-outline" id="refreshDataBtn">
+                    <i class="material-icons">refresh</i>
+                    Refresh Data
+                </button>
+                <button class="btn-excel btn-excel-primary" id="loadFileBtn">
+                    <i class="material-icons">upload_file</i>
+                    Load New File
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Selection and Worksheet Navigation -->
+    <div class="reports-toolbar">
+        <div class="row align-items-end">
+            <div class="col-md-4">
+                <div class="form-group-excel">
+                    <label class="form-label-excel">
+                        <i class="material-icons">description</i>
+                        Select Excel File
+                    </label>
+                    <div class="select-excel">
+                        <select id="fileSelector" class="form-control-excel">
+                            <option value="">Choose a file to analyze...</option>
+                            <!-- Dynamic file options will be loaded here -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group-excel">
+                    <label class="form-label-excel">
+                        <i class="material-icons">tab</i>
+                        Select Worksheet
+                    </label>
+                    <div class="select-excel">
+                        <select id="worksheetSelector" class="form-control-excel" disabled>
+                            <option value="">Select a file first...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group-excel" id="keyColumnSelectorContainer" style="display: none;">
+                    <label class="form-label-excel">
+                        <i class="material-icons">vpn_key</i>
+                        Select Unique ID Column
+                    </label>
+                    <div class="select-excel">
+                        <select id="keyColumnSelector" class="form-control-excel" disabled>
+                            <option value="">Select worksheet first...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Dashboard -->
+    <div class="analysis-dashboard">
+        <div class="row">
+            <!-- Summary Cards -->
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <div class="summary-card-icon total-assets">
+                        <i class="material-icons">inventory</i>
+                    </div>
+                    <div class="summary-card-content">
+                        <h3 id="totalAssetsCount">-</h3>
+                        <p>Total Assets</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <div class="summary-card-icon integrity-issues">
+                        <i class="material-icons">warning</i>
+                    </div>
+                    <div class="summary-card-content">
+                        <h3 id="integrityIssuesCount">-</h3>
+                        <p>Integrity Issues</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <div class="summary-card-icon missing-tasks">
+                        <i class="material-icons">assignment_late</i>
+                    </div>
+                    <div class="summary-card-content">
+                        <h3 id="missingTasksCount">-</h3>
+                        <p>Missing Tasks</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <div class="summary-card-icon completion-rate">
+                        <i class="material-icons">check_circle</i>
+                    </div>
+                    <div class="summary-card-content">
+                        <h3 id="completionRate">-</h3>
+                        <p>Completion Rate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Tabs -->
+        <div class="analysis-tabs">
+            <div class="nav-excel">
+                <div class="nav-excel-item active" data-tab="integrity">
+                    <i class="material-icons">fact_check</i>
+                    Data Integrity
+                </div>
+                <div class="nav-excel-item" data-tab="assets">
+                    <i class="material-icons">inventory_2</i>
+                    Asset Analysis
+                </div>
+                <div class="nav-excel-item" data-tab="tasks">
+                    <i class="material-icons">assignment</i>
+                    Task Management
+                </div>
+                <div class="nav-excel-item" data-tab="recommendations">
+                    <i class="material-icons">lightbulb</i>
+                    Recommendations
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Data Integrity Tab -->
+            <div class="tab-pane active" id="integrityTab">
+                <div class="analysis-section">
+                    <div class="section-header">
+                        <h3>
+                            <i class="material-icons">fact_check</i>
+                            Data Integrity Analysis
+                        </h3>
+                        <p>Issues that need immediate attention to maintain data accuracy</p>
+                    </div>
+                    
+                    <div class="table-container">
+                        <div class="table-excel-wrapper">
+                            <table class="table-excel" id="integrityTable">
+                                <thead>
+                                    <tr>
+                                        <th>Asset ID</th>
+                                        <th>Issue Type</th>
+                                        <th>Description</th>
+                                        <th>Priority</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="no-data-row">
+                                        <td colspan="6" class="text-center">
+                                            <i class="material-icons">description</i>
+                                            <p>Select a file and worksheet to view integrity analysis</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Asset Analysis Tab -->
+            <div class="tab-pane" id="assetsTab">
+                <div class="analysis-section">
+                    <div class="section-header">
+                        <h3>
+                            <i class="material-icons">inventory_2</i>
+                            Asset Analysis
+                        </h3>
+                        <p>Comprehensive view of all assets and their current status</p>
+                    </div>
+                    
+                    <div class="table-container">
+                        <div class="table-excel-wrapper">
+                            <table class="table-excel" id="assetsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Equipment ID</th>
+                                        <th>Asset Type</th>
+                                        <th>Status</th>
+                                        <th>RBI Components</th>
+                                        <th>Inspection Tasks</th>
+                                        <th>Last Updated</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="no-data-row">
+                                        <td colspan="6" class="text-center">
+                                            <i class="material-icons">description</i>
+                                            <p>Select a file and worksheet to view asset analysis</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Management Tab -->
+            <div class="tab-pane" id="tasksTab">
+                <div class="analysis-section">
+                    <div class="section-header">
+                        <h3>
+                            <i class="material-icons">assignment</i>
+                            Task Management
+                        </h3>
+                        <p>Overview of inspection tasks and their completion status</p>
+                    </div>
+                    
+                    <div class="table-container">
+                        <div class="table-excel-wrapper">
+                            <table class="table-excel" id="tasksTable">
+                                <thead>
+                                    <tr>
+                                        <th>Task ID</th>
+                                        <th>Asset</th>
+                                        <th>Task Type</th>
+                                        <th>Due Date</th>
+                                        <th>Status</th>
+                                        <th>Assigned To</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="no-data-row">
+                                        <td colspan="6" class="text-center">
+                                            <i class="material-icons">description</i>
+                                            <p>Select a file and worksheet to view task analysis</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations Tab -->
+            <div class="tab-pane" id="recommendationsTab">
+                <div class="analysis-section">
+                    <div class="section-header">
+                        <h3>
+                            <i class="material-icons">lightbulb</i>
+                            Recommendations
+                        </h3>
+                        <p>AI-powered suggestions to improve data quality and workflow efficiency</p>
+                    </div>
+                    
+                    <div class="recommendations-grid">
+                        <div class="recommendation-card priority-high">
+                            <div class="recommendation-header">
+                                <i class="material-icons">priority_high</i>
+                                <span class="recommendation-priority">High Priority</span>
+                            </div>
+                            <h4>Resolve Asset Mapping Issues</h4>
+                            <p>3 assets have RBI components linked to old asset IDs. Update mappings to prevent data loss.</p>
+                            <div class="recommendation-actions">
+                                <button class="btn-excel btn-excel-sm btn-excel-warning">View Details</button>
+                            </div>
+                        </div>
+                        
+                        <div class="recommendation-card priority-medium">
+                            <div class="recommendation-header">
+                                <i class="material-icons">error</i>
+                                <span class="recommendation-priority">Medium Priority</span>
+                            </div>
+                            <h4>Missing Inspection Tasks</h4>
+                            <p>5 assets have RBI components but no associated inspection tasks in the system.</p>
+                            <div class="recommendation-actions">
+                                <button class="btn-excel btn-excel-sm btn-excel-secondary">View Details</button>
+                            </div>
+                        </div>
+                        
+                        <div class="recommendation-card priority-low">
+                            <div class="recommendation-header">
+                                <i class="material-icons">info</i>
+                                <span class="recommendation-priority">Low Priority</span>
+                            </div>
+                            <h4>Data Standardization</h4>
+                            <p>Consider standardizing asset naming conventions across all worksheets.</p>
+                            <div class="recommendation-actions">
+                                <button class="btn-excel btn-excel-sm btn-excel-outline">View Details</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Analyzing data...</p>
+        </div>
+    </div>
+
+    <!-- File Upload Modal -->
+    <div class="upload-modal" id="uploadModal">
+        <div class="upload-modal-content">
+            <div class="upload-modal-header">
+                <h3>
+                    <i class="material-icons">cloud_upload</i>
+                    Upload New Excel File
+                </h3>
+                <button class="upload-modal-close" id="uploadModalClose">
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+            
+            <div class="upload-modal-body">
+                <div class="upload-zone-modal" id="uploadZoneModal">
+                    <input type="file" id="fileInputModal" class="file-input" multiple accept=".xlsx,.xls,.csv">
+                    <div class="upload-content-modal" id="uploadContentModal">
+                        <i class="material-icons upload-icon-modal">cloud_upload</i>
+                        <h4>Drop Excel files here or click to browse</h4>
+                        <p>Supports .xlsx, .xls, and .csv files • Max 50MB per file</p>
+                        <div class="btn-excel btn-excel-primary">
+                            <i class="material-icons">folder_open</i>
+                            Select Files
+                        </div>
+                    </div>
+                    <div class="upload-progress" id="uploadProgress" style="display: none;">
+                        <div class="progress-excel">
+                            <div class="progress-excel-bar" id="uploadProgressBar" style="width: 0%;"></div>
+                        </div>
+                        <p id="uploadProgressText">Uploading...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="upload-modal-footer">
+                <button class="btn-excel btn-excel-outline" id="cancelUpload">Cancel</button>
+                <button class="btn-excel btn-excel-primary" id="startUpload" disabled>
+                    <i class="material-icons">upload</i>
+                    Upload Files
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/view-reports.js" asp-append-version="true"></script>
+} 

@@ -1,0 +1,709 @@
+/**
+ * ExcelRefinery View Reports Page Styling
+ * File: view-reports.css
+ * Description: Modern dashboard styling for data analysis and reporting interface
+ * Author: ExcelRefinery Development Team
+ */
+
+/* ==========================================================================
+   View Reports Container
+   ========================================================================== */
+.view-reports-container {
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--light-cyan) 0%, var(--white) 100%);
+    min-height: 100vh;
+}
+
+/* ==========================================================================
+   Header Section
+   ========================================================================== */
+.view-reports-header {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--medium-grey);
+}
+
+.header-title h1 {
+    color: var(--federal-blue);
+    font-size: 2.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-title h1 i {
+    font-size: 3rem;
+    color: var(--pacific-cyan);
+}
+
+.header-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* ==========================================================================
+   Reports Toolbar
+   ========================================================================== */
+.reports-toolbar {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--medium-grey);
+}
+
+.reports-toolbar .form-label-excel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: var(--federal-blue);
+}
+
+.reports-toolbar .form-label-excel i {
+    color: var(--pacific-cyan);
+}
+
+/* ==========================================================================
+   Analysis Dashboard
+   ========================================================================== */
+.analysis-dashboard {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    border: 1px solid var(--medium-grey);
+}
+
+/* ==========================================================================
+   Summary Cards
+   ========================================================================== */
+.summary-card {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--medium-grey);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all var(--transition-fast);
+}
+
+.summary-card:hover {
+    background-color: var(--light-grey);
+}
+
+.summary-card-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.summary-card-icon i {
+    font-size: 2rem;
+    color: var(--white);
+}
+
+.summary-card-icon.total-assets {
+    background: linear-gradient(135deg, var(--honolulu-blue), var(--pacific-cyan));
+}
+
+.summary-card-icon.integrity-issues {
+    background: linear-gradient(135deg, var(--warning-amber), #ffb74d);
+}
+
+.summary-card-icon.missing-tasks {
+    background: linear-gradient(135deg, var(--error-red), #ef5350);
+}
+
+.summary-card-icon.completion-rate {
+    background: linear-gradient(135deg, var(--success-green), #66bb6a);
+}
+
+.summary-card-content {
+    flex: 1;
+}
+
+.summary-card-content h3 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--federal-blue);
+    margin: 0;
+    line-height: 1;
+}
+
+.summary-card-content p {
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0 0;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   Analysis Tabs
+   ========================================================================== */
+.analysis-tabs {
+    margin-bottom: 2rem;
+    border-bottom: 2px solid var(--medium-grey);
+}
+
+.analysis-tabs .nav-excel {
+    margin-bottom: -2px;
+}
+
+.analysis-tabs .nav-excel-item {
+    border-bottom: 2px solid transparent;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+}
+
+.analysis-tabs .nav-excel-item:hover {
+    color: var(--honolulu-blue);
+    background-color: var(--light-grey);
+}
+
+.analysis-tabs .nav-excel-item.active {
+    color: var(--federal-blue);
+    border-bottom-color: var(--pacific-cyan);
+    background-color: var(--light-grey);
+}
+
+/* ==========================================================================
+   Tab Content
+   ========================================================================== */
+.tab-content {
+    position: relative;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+.analysis-section {
+    margin-bottom: 2rem;
+}
+
+.section-header {
+    margin-bottom: 2rem;
+}
+
+.section-header h3 {
+    color: var(--federal-blue);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.section-header h3 i {
+    color: var(--pacific-cyan);
+}
+
+.section-header p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* ==========================================================================
+   Table Container
+   ========================================================================== */
+.table-container {
+    background: var(--light-grey);
+    border-radius: var(--border-radius-md);
+    padding: 1rem;
+}
+
+.table-excel-wrapper {
+    overflow-x: auto;
+    border-radius: var(--border-radius-md);
+}
+
+.table-excel {
+    margin: 0;
+    background: var(--white);
+}
+
+.no-data-row td {
+    padding: 3rem 2rem;
+    color: var(--text-secondary);
+}
+
+.no-data-row i {
+    font-size: 3rem;
+    color: var(--medium-grey);
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.no-data-row p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+/* ==========================================================================
+   Recommendations Grid
+   ========================================================================== */
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.recommendation-card {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    border-left: 4px solid var(--medium-grey);
+    transition: all var(--transition-fast);
+}
+
+.recommendation-card:hover {
+    background-color: var(--light-grey);
+}
+
+.recommendation-card.priority-high {
+    border-left-color: var(--error-red);
+}
+
+.recommendation-card.priority-medium {
+    border-left-color: var(--warning-amber);
+}
+
+.recommendation-card.priority-low {
+    border-left-color: var(--success-green);
+}
+
+.recommendation-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.recommendation-header i {
+    font-size: 1.25rem;
+}
+
+.recommendation-card.priority-high .recommendation-header i {
+    color: var(--error-red);
+}
+
+.recommendation-card.priority-medium .recommendation-header i {
+    color: var(--warning-amber);
+}
+
+.recommendation-card.priority-low .recommendation-header i {
+    color: var(--success-green);
+}
+
+.recommendation-priority {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+.recommendation-card h4 {
+    color: var(--federal-blue);
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem 0;
+}
+
+.recommendation-card p {
+    color: var(--text-secondary);
+    margin: 0 0 1.5rem 0;
+    line-height: 1.5;
+}
+
+.recommendation-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* ==========================================================================
+   Loading Overlay
+   ========================================================================== */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-overlay.active {
+    display: flex;
+}
+
+.loading-spinner {
+    text-align: center;
+    color: var(--federal-blue);
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--light-cyan);
+    border-top: 4px solid var(--pacific-cyan);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-spinner p {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* ==========================================================================
+   Status Badges
+   ========================================================================== */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.status-active {
+    background: var(--success-green-light);
+    color: var(--success-green);
+}
+
+.status-badge.status-inactive {
+    background: var(--error-red-light);
+    color: var(--error-red);
+}
+
+.status-badge.status-pending {
+    background: var(--warning-amber-light);
+    color: var(--warning-amber);
+}
+
+.status-badge.status-completed {
+    background: var(--info-blue-light);
+    color: var(--info-blue);
+}
+
+/* ==========================================================================
+   Priority Indicators
+   ========================================================================== */
+.priority-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.priority-indicator.priority-high {
+    color: var(--error-red);
+}
+
+.priority-indicator.priority-medium {
+    color: var(--warning-amber);
+}
+
+.priority-indicator.priority-low {
+    color: var(--success-green);
+}
+
+/* ==========================================================================
+   Action Buttons
+   ========================================================================== */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-excel-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    min-width: auto;
+}
+
+/* ==========================================================================
+   Upload Modal
+   ========================================================================== */
+.upload-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.upload-modal.active {
+    display: flex;
+}
+
+.upload-modal-content {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.upload-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--medium-grey);
+}
+
+.upload-modal-header h3 {
+    color: var(--federal-blue);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.upload-modal-header h3 i {
+    color: var(--pacific-cyan);
+}
+
+.upload-modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: var(--border-radius-sm);
+    transition: all var(--transition-fast);
+}
+
+.upload-modal-close:hover {
+    background-color: var(--light-grey);
+    color: var(--federal-blue);
+}
+
+.upload-modal-body {
+    padding: 2rem;
+}
+
+.upload-zone-modal {
+    border: 2px dashed var(--pacific-cyan);
+    border-radius: var(--border-radius-lg);
+    padding: 3rem 2rem;
+    text-align: center;
+    background: var(--light-cyan);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.upload-zone-modal:hover {
+    border-color: var(--honolulu-blue);
+    background-color: rgba(202, 240, 248, 0.7);
+}
+
+.upload-zone-modal.dragover {
+    border-color: var(--honolulu-blue);
+    background-color: rgba(202, 240, 248, 0.9);
+}
+
+.file-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.upload-content-modal {
+    pointer-events: none;
+}
+
+.upload-icon-modal {
+    font-size: 4rem;
+    color: var(--pacific-cyan);
+    margin-bottom: 1rem;
+}
+
+.upload-content-modal h4 {
+    color: var(--federal-blue);
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+}
+
+.upload-content-modal p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+}
+
+.upload-progress {
+    margin-top: 1rem;
+}
+
+.upload-progress p {
+    color: var(--text-secondary);
+    margin: 0.5rem 0 0 0;
+    font-size: 0.875rem;
+}
+
+.upload-modal-footer {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--medium-grey);
+    background: var(--light-grey);
+    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+@media (max-width: 768px) {
+    .view-reports-container {
+        padding: 1rem;
+    }
+    
+    .view-reports-header,
+    .reports-toolbar,
+    .analysis-dashboard {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .header-title h1 {
+        font-size: 2rem;
+    }
+    
+    .header-title h1 i {
+        font-size: 2.5rem;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    
+    .summary-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .summary-card-content h3 {
+        font-size: 1.5rem;
+    }
+    
+    .analysis-tabs .nav-excel {
+        flex-direction: column;
+    }
+    
+    .analysis-tabs .nav-excel-item {
+        border-bottom: none;
+        border-left: 2px solid transparent;
+    }
+    
+    .analysis-tabs .nav-excel-item.active {
+        border-bottom: none;
+        border-left-color: var(--pacific-cyan);
+    }
+    
+    .recommendations-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .upload-modal-content {
+        width: 95%;
+        margin: 1rem;
+    }
+    
+    .upload-modal-header,
+    .upload-modal-body,
+    .upload-modal-footer {
+        padding: 1rem;
+    }
+    
+    .upload-zone-modal {
+        padding: 2rem 1rem;
+    }
+    
+    .upload-icon-modal {
+        font-size: 3rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .table-excel-wrapper {
+        font-size: 0.875rem;
+    }
+    
+    .recommendation-card {
+        padding: 1rem;
+    }
+    
+    .summary-card-icon {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .summary-card-icon i {
+        font-size: 1.5rem;
+    }
+} 
